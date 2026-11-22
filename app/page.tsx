@@ -2,15 +2,17 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-type CharacterType = 'okura' | 'king_okura' | 'caterpillar';
+type VeggieKey = 'okura' | 'tomato' | 'chili' | 'watermelon' | 'king';
+type ObstacleKey = 'caterpillar' | 'ladybug' | 'cactus' | 'crab' | 'fairy';
+type CharType = VeggieKey | ObstacleKey;
 
 type HoleState = {
   id: number;
   isUp: boolean;
   isHit: boolean;
-  charType: CharacterType;
+  charType: CharType;
   burstKey: number;
-  burstType: 'star' | 'warn';
+  burstVeggie: VeggieKey | 'warn';
 };
 
 type StageConfig = {
@@ -18,125 +20,162 @@ type StageConfig = {
   title: string;
   targetScore: number;
   timeLimit: number;
+  instantClear: boolean;
   popIntervalMin: number;
   popIntervalMax: number;
   stayMin: number;
   stayMax: number;
-  caterpillarRate: number;
+  obstacleRate: number;
   kingRate: number;
   farmLabel: string;
   farmIcons: string[];
   farmBgClass: string;
 };
 
-const STAGES: StageConfig[] = [
+type ChapterConfig = {
+  id: number;
+  name: string;
+  subtitle: string;
+  veggie: VeggieKey;
+  veggieName: string;
+  obstacle: ObstacleKey;
+  obstacleName: string;
+  obstacleDesc: string;
+  storyIntro: string;
+  storyClear: string;
+  seedReward: string;
+  themeColor: string;
+  stages: StageConfig[];
+};
+
+const CHAPTERS: ChapterConfig[] = [
   {
-    stage: 1,
-    title: 'Stage 1：荒れ地の開墾',
-    targetScore: 150,
-    timeLimit: 20,
-    popIntervalMin: 480,
-    popIntervalMax: 800,
-    stayMin: 700,
-    stayMax: 1100,
-    caterpillarRate: 0.12,
-    kingRate: 0.05,
-    farmLabel: '現在の畑：荒れ地（クリアで黒土の畑に！）',
-    farmIcons: ['🪨', '🏜️', '🪨', '🏜️', '🪨'],
-    farmBgClass: 'bg-stone-300 border-stone-500',
+    id: 1,
+    name: '第1章：日本の里山',
+    subtitle: '髭オクラ編（チュートリアル）',
+    veggie: 'okura',
+    veggieName: '髭オクラ',
+    obstacle: 'caterpillar',
+    obstacleName: 'イモムシ',
+    obstacleDesc: '叩くと減点＆コンボ消滅',
+    storyIntro: 'まずは里山の畑を開墾や！オクラの種を星型に弾き飛ばして大地に命を吹き込め！',
+    storyClear: '里山に立派なオクラが実った！『星の種』を手に入れたで！',
+    seedReward: '⭐ 星の種',
+    themeColor: 'green',
+    stages: [
+      { stage: 1, title: '1-1：荒れ地の開墾', targetScore: 120, timeLimit: 20, instantClear: true, popIntervalMin: 500, popIntervalMax: 820, stayMin: 750, stayMax: 1150, obstacleRate: 0.10, kingRate: 0.08, farmLabel: '荒れ地（達成で即クリア！）', farmIcons: ['🪨', '🏜️', '🪨', '🏜️', '🪨'], farmBgClass: 'bg-stone-300 border-stone-500' },
+      { stage: 2, title: '1-2：ふかふかの黒土', targetScore: 200, timeLimit: 20, instantClear: true, popIntervalMin: 450, popIntervalMax: 750, stayMin: 700, stayMax: 1050, obstacleRate: 0.15, kingRate: 0.10, farmLabel: '黒土完成（達成で即クリア！）', farmIcons: ['🟫', '🟫', '🟫', '🟫', '🟫'], farmBgClass: 'bg-amber-900/20 border-amber-800' },
+      { stage: 3, title: '1-3：小さな新芽', targetScore: 280, timeLimit: 20, instantClear: true, popIntervalMin: 400, popIntervalMax: 680, stayMin: 650, stayMax: 950, obstacleRate: 0.18, kingRate: 0.12, farmLabel: '新芽発芽（達成で即クリア！）', farmIcons: ['🌱', '🟫', '🌱', '🟫', '🌱'], farmBgClass: 'bg-lime-100 border-lime-600' },
+      { stage: 4, title: '1-4：元気なふたば', targetScore: 380, timeLimit: 22, instantClear: false, popIntervalMin: 360, popIntervalMax: 600, stayMin: 580, stayMax: 880, obstacleRate: 0.22, kingRate: 0.15, farmLabel: 'ふたば成長（0秒までキープ！）', farmIcons: ['🌿', '🌱', '🌿', '🌱', '🌿'], farmBgClass: 'bg-green-100 border-green-600' },
+      { stage: 5, title: '1-5：里山の大収穫祭', targetScore: 500, timeLimit: 25, instantClear: false, popIntervalMin: 330, popIntervalMax: 550, stayMin: 530, stayMax: 820, obstacleRate: 0.25, kingRate: 0.22, farmLabel: 'オクラ満開（0秒までキープ！）', farmIcons: ['🌼', '🌿', '🌼', '🌿', '🌼'], farmBgClass: 'bg-yellow-100 border-yellow-500' },
+    ],
   },
   {
-    stage: 2,
-    title: 'Stage 2：ふかふかの黒土',
-    targetScore: 250,
-    timeLimit: 20,
-    popIntervalMin: 430,
-    popIntervalMax: 730,
-    stayMin: 650,
-    stayMax: 1000,
-    caterpillarRate: 0.18,
-    kingRate: 0.08,
-    farmLabel: '現在の畑：黒土完成！（クリアで新芽が出るで！）',
-    farmIcons: ['🟫', '🟫', '🟫', '🟫', '🟫'],
-    farmBgClass: 'bg-amber-900/20 border-amber-800',
+    id: 2,
+    name: '第2章：日本の畑',
+    subtitle: '真っ赤なトマト編',
+    veggie: 'tomato',
+    veggieName: '真っ赤なトマト',
+    obstacle: 'ladybug',
+    obstacleName: 'テントウムシ',
+    obstacleDesc: '畑の守り神！叩くと減点',
+    storyIntro: '里山が蘇った！次は隣のトマト畑に真っ赤な果汁の潤いを届けるで！',
+    storyClear: 'トマト畑が真っ赤に染まった！『太陽の種』を手に入れたで！',
+    seedReward: '☀️ 太陽の種',
+    themeColor: 'red',
+    stages: [
+      { stage: 1, title: '2-1：乾いた畝づくり', targetScore: 180, timeLimit: 20, instantClear: true, popIntervalMin: 450, popIntervalMax: 750, stayMin: 680, stayMax: 1020, obstacleRate: 0.16, kingRate: 0.08, farmLabel: '畝づくり（達成で即クリア！）', farmIcons: ['🟫', '🪨', '🟫', '🪨', '🟫'], farmBgClass: 'bg-orange-100 border-orange-400' },
+      { stage: 2, title: '2-2：朝露の水やり', targetScore: 280, timeLimit: 20, instantClear: true, popIntervalMin: 400, popIntervalMax: 680, stayMin: 620, stayMax: 950, obstacleRate: 0.20, kingRate: 0.10, farmLabel: '朝露キラリ（達成で即クリア！）', farmIcons: ['💧', '🌱', '💧', '🌱', '💧'], farmBgClass: 'bg-sky-100 border-sky-500' },
+      { stage: 3, title: '2-3：支柱立て', targetScore: 380, timeLimit: 20, instantClear: true, popIntervalMin: 360, popIntervalMax: 620, stayMin: 580, stayMax: 880, obstacleRate: 0.22, kingRate: 0.14, farmLabel: 'グングン成長（達成で即クリア！）', farmIcons: ['🌿', '💧', '🌿', '💧', '🌿'], farmBgClass: 'bg-emerald-100 border-emerald-500' },
+      { stage: 4, title: '2-4：青い実の季節', targetScore: 520, timeLimit: 22, instantClear: false, popIntervalMin: 330, popIntervalMax: 550, stayMin: 520, stayMax: 820, obstacleRate: 0.26, kingRate: 0.18, farmLabel: '色づき始め（0秒までキープ！）', farmIcons: ['🍏', '🌿', '🍏', '🌿', '🍏'], farmBgClass: 'bg-rose-100 border-rose-400' },
+      { stage: 5, title: '2-5：完熟トマト祭り', targetScore: 680, timeLimit: 25, instantClear: false, popIntervalMin: 290, popIntervalMax: 500, stayMin: 480, stayMax: 760, obstacleRate: 0.28, kingRate: 0.25, farmLabel: '完熟トマト鈴なり（0秒までキープ！）', farmIcons: ['🍅', '🌿', '🍅', '🌿', '🍅'], farmBgClass: 'bg-red-100 border-red-500' },
+    ],
   },
   {
-    stage: 3,
-    title: 'Stage 3：小さな新芽',
-    targetScore: 350,
-    timeLimit: 20,
-    popIntervalMin: 380,
-    popIntervalMax: 660,
-    stayMin: 600,
-    stayMax: 920,
-    caterpillarRate: 0.22,
-    kingRate: 0.12,
-    farmLabel: '現在の畑：新芽が発芽！（クリアでふたばに成長！）',
-    farmIcons: ['🌱', '🟫', '🌱', '🟫', '🌱'],
-    farmBgClass: 'bg-lime-100 border-lime-600',
+    id: 3,
+    name: '第3章：世界の荒野',
+    subtitle: 'メキシカン唐辛子編',
+    veggie: 'chili',
+    veggieName: 'メキシカン唐辛子',
+    obstacle: 'cactus',
+    obstacleName: 'サボテンベビー',
+    obstacleDesc: 'トゲが刺さり1秒間しびれる！',
+    storyIntro: '海を越えて灼熱の荒野へ！情熱の火花で枯れ野に生命の火を灯せ！',
+    storyClear: '荒野に灼熱の生命力が宿った！『炎の種』を手に入れたで！',
+    seedReward: '🔥 炎の種',
+    themeColor: 'orange',
+    stages: [
+      { stage: 1, title: '3-1：赤土の開拓', targetScore: 220, timeLimit: 20, instantClear: true, popIntervalMin: 420, popIntervalMax: 700, stayMin: 640, stayMax: 960, obstacleRate: 0.18, kingRate: 0.10, farmLabel: '赤土の荒野（達成で即クリア！）', farmIcons: ['🏜️', '🔥', '🏜️', '🔥', '🏜️'], farmBgClass: 'bg-amber-200 border-amber-600' },
+      { stage: 2, title: '3-2：太陽の恵み', targetScore: 340, timeLimit: 20, instantClear: true, popIntervalMin: 380, popIntervalMax: 640, stayMin: 580, stayMax: 900, obstacleRate: 0.22, kingRate: 0.12, farmLabel: '熱風の芽吹き（達成で即クリア！）', farmIcons: ['🌱', '🔥', '🌱', '🔥', '🌱'], farmBgClass: 'bg-orange-200 border-orange-600' },
+      { stage: 3, title: '3-3：スパイシー開花', targetScore: 460, timeLimit: 20, instantClear: true, popIntervalMin: 340, popIntervalMax: 580, stayMin: 540, stayMax: 840, obstacleRate: 0.24, kingRate: 0.15, farmLabel: '情熱の開花（達成で即クリア！）', farmIcons: ['🌺', '🌿', '🌺', '🌿', '🌺'], farmBgClass: 'bg-red-200 border-red-600' },
+      { stage: 4, title: '3-4：灼熱の嵐', targetScore: 620, timeLimit: 22, instantClear: false, popIntervalMin: 300, popIntervalMax: 520, stayMin: 490, stayMax: 780, obstacleRate: 0.28, kingRate: 0.20, farmLabel: '灼熱サバイバル（0秒までキープ！）', farmIcons: ['🌶️', '🔥', '🌶️', '🔥', '🌶️'], farmBgClass: 'bg-orange-300 border-red-700' },
+      { stage: 5, title: '3-5：激辛カーニバル', targetScore: 800, timeLimit: 25, instantClear: false, popIntervalMin: 270, popIntervalMax: 470, stayMin: 450, stayMax: 720, obstacleRate: 0.30, kingRate: 0.25, farmLabel: '炎の収穫祭（0秒までキープ！）', farmIcons: ['🔥', '🌶️', '👑', '🌶️', '🔥'], farmBgClass: 'bg-red-300 border-red-800' },
+    ],
   },
   {
-    stage: 4,
-    title: 'Stage 4：元気なふたば',
-    targetScore: 480,
-    timeLimit: 22,
-    popIntervalMin: 340,
-    popIntervalMax: 580,
-    stayMin: 550,
-    stayMax: 850,
-    caterpillarRate: 0.25,
-    kingRate: 0.15,
-    farmLabel: '現在の畑：ふたば成長中！（クリアで黄色い花が咲く！）',
-    farmIcons: ['🌿', '🌱', '🌿', '🌱', '🌿'],
-    farmBgClass: 'bg-green-100 border-green-600',
+    id: 4,
+    name: '第4章：南国の楽園',
+    subtitle: 'スイカ大王編',
+    veggie: 'watermelon',
+    veggieName: 'スイカ大王',
+    obstacle: 'crab',
+    obstacleName: 'ヤシガニ',
+    obstacleDesc: 'ハサミで挟まれて大幅減点！',
+    storyIntro: '南国の楽園でスイカ大王が暴走中！硬い縞模様を叩き割って黒種を撒け！',
+    storyClear: '南国に甘い実りが戻った！『大地の種』を手に入れたで！',
+    seedReward: '🍉 大地の種',
+    themeColor: 'emerald',
+    stages: [
+      { stage: 1, title: '4-1：砂浜の農園', targetScore: 260, timeLimit: 20, instantClear: true, popIntervalMin: 390, popIntervalMax: 660, stayMin: 600, stayMax: 920, obstacleRate: 0.20, kingRate: 0.10, farmLabel: '白い砂浜（達成で即クリア！）', farmIcons: ['🏖️', '🌴', '🏖️', '🌴', '🏖️'], farmBgClass: 'bg-cyan-100 border-cyan-500' },
+      { stage: 2, title: '4-2：スコールと虹', targetScore: 400, timeLimit: 20, instantClear: true, popIntervalMin: 350, popIntervalMax: 600, stayMin: 550, stayMax: 850, obstacleRate: 0.23, kingRate: 0.14, farmLabel: '南国のスコール（達成で即クリア！）', farmIcons: ['🌈', '🌱', '🌈', '🌱', '🌈'], farmBgClass: 'bg-teal-100 border-teal-500' },
+      { stage: 3, title: '4-3：ツルが伸びる！', targetScore: 540, timeLimit: 20, instantClear: true, popIntervalMin: 310, popIntervalMax: 540, stayMin: 500, stayMax: 790, obstacleRate: 0.25, kingRate: 0.18, farmLabel: 'ツル拡大中（達成で即クリア！）', farmIcons: ['🌿', '🌴', '🌿', '🌴', '🌿'], farmBgClass: 'bg-emerald-200 border-emerald-600' },
+      { stage: 4, title: '4-4：大玉ゴロゴロ', targetScore: 720, timeLimit: 22, instantClear: false, popIntervalMin: 280, popIntervalMax: 490, stayMin: 460, stayMax: 730, obstacleRate: 0.28, kingRate: 0.22, farmLabel: '大玉ラッシュ（0秒までキープ！）', farmIcons: ['🍉', '🌿', '🍉', '🌿', '🍉'], farmBgClass: 'bg-green-200 border-emerald-700' },
+      { stage: 5, title: '4-5：スイカ大王の試練', targetScore: 920, timeLimit: 25, instantClear: false, popIntervalMin: 250, popIntervalMax: 440, stayMin: 420, stayMax: 680, obstacleRate: 0.32, kingRate: 0.28, farmLabel: '楽園の大収穫（0秒までキープ！）', farmIcons: ['👑', '🍉', '🌴', '🍉', '👑'], farmBgClass: 'bg-emerald-300 border-green-800' },
+    ],
   },
   {
-    stage: 5,
-    title: 'Stage 5：開花＆大収穫祭！',
-    targetScore: 650,
-    timeLimit: 25,
-    popIntervalMin: 300,
-    popIntervalMax: 520,
-    stayMin: 500,
-    stayMax: 800,
-    caterpillarRate: 0.28,
-    kingRate: 0.25,
-    farmLabel: '現在の畑：オクラの花満開！（クリアで豊作＆神秘の種！）',
-    farmIcons: ['🌼', '🌿', '🌼', '🌿', '🌼'],
-    farmBgClass: 'bg-yellow-100 border-yellow-500',
+    id: 5,
+    name: '最終章：天空の王宮',
+    subtitle: '野菜の王様・大団円編',
+    veggie: 'king',
+    veggieName: '野菜の王様＆全野菜',
+    obstacle: 'fairy',
+    obstacleName: '妖精ピコ',
+    obstacleDesc: '王様の使い！叩くと減点＆コンボ消滅',
+    storyIntro: '4つの種が共鳴し天空の王宮への扉が開いた！王様へ虹色の神秘の種を届けよう！',
+    storyClear: 'すべての畑に黄金の収穫祭が蘇った！君こそが伝説の収穫王や！！',
+    seedReward: '🌈 神秘の種',
+    themeColor: 'yellow',
+    stages: [
+      { stage: 1, title: '5-1：雲の上の庭園', targetScore: 320, timeLimit: 20, instantClear: true, popIntervalMin: 360, popIntervalMax: 600, stayMin: 560, stayMax: 860, obstacleRate: 0.22, kingRate: 0.15, farmLabel: '雲上の庭園（達成で即クリア！）', farmIcons: ['☁️', '✨', '☁️', '✨', '☁️'], farmBgClass: 'bg-indigo-100 border-indigo-400' },
+      { stage: 2, title: '5-2：光の泉', targetScore: 480, timeLimit: 20, instantClear: true, popIntervalMin: 320, popIntervalMax: 540, stayMin: 510, stayMax: 800, obstacleRate: 0.25, kingRate: 0.18, farmLabel: '光の泉湧出（達成で即クリア！）', farmIcons: ['⛲', '🌱', '⛲', '🌱', '⛲'], farmBgClass: 'bg-sky-200 border-sky-600' },
+      { stage: 3, title: '5-3：虹の架け橋', targetScore: 650, timeLimit: 20, instantClear: true, popIntervalMin: 290, popIntervalMax: 490, stayMin: 470, stayMax: 740, obstacleRate: 0.27, kingRate: 0.22, farmLabel: '虹の架け橋（達成で即クリア！）', farmIcons: ['🌈', '🌿', '🌈', '🌿', '🌈'], farmBgClass: 'bg-purple-100 border-purple-500' },
+      { stage: 4, title: '5-4：四天王の総進撃', targetScore: 850, timeLimit: 22, instantClear: false, popIntervalMin: 260, popIntervalMax: 450, stayMin: 430, stayMax: 690, obstacleRate: 0.30, kingRate: 0.25, farmLabel: '全野菜総登場（0秒までキープ！）', farmIcons: ['⭐', '🍅', '🌶️', '🍉', '👑'], farmBgClass: 'bg-amber-200 border-amber-600' },
+      { stage: 5, title: '5-5：野菜の王様・最終決戦', targetScore: 1100, timeLimit: 25, instantClear: false, popIntervalMin: 230, popIntervalMax: 410, stayMin: 400, stayMax: 640, obstacleRate: 0.32, kingRate: 0.35, farmLabel: '黄金の収穫祭（0秒までキープ！）', farmIcons: ['👑', '🌈', '✨', '🌈', '👑'], farmBgClass: 'bg-gradient-to-r from-yellow-200 via-amber-200 to-yellow-200 border-yellow-500' },
+    ],
   },
 ];
 
-// 10粒の種が「パァーン！」と外周＋星型5方向へ勢いよく弾け飛ぶベクトル
-const BURST_SEEDS = [
-  // 外側5方向（大きく飛び散る種）
-  { tx: '0px', ty: '-72px', size: 'w-4 h-5' },
-  { tx: '68px', ty: '-22px', size: 'w-4 h-5' },
-  { tx: '42px', ty: '58px', size: 'w-4 h-5' },
-  { tx: '-42px', ty: '58px', size: 'w-4 h-5' },
-  { tx: '-68px', ty: '-22px', size: 'w-4 h-5' },
-  // 内側5方向（ずらした角度で飛び散る小粒の種）
-  { tx: '30px', ty: '-44px', size: 'w-3 h-3.5' },
-  { tx: '48px', ty: '24px', size: 'w-3 h-3.5' },
-  { tx: '0px', ty: '52px', size: 'w-3 h-3.5' },
-  { tx: '-48px', ty: '24px', size: 'w-3 h-3.5' },
-  { tx: '-30px', ty: '-44px', size: 'w-3 h-3.5' },
+// 10方向弾け飛びベクトル
+const BURST_VECTORS = [
+  { tx: '0px', ty: '-74px', size: 'w-4 h-5' },
+  { tx: '70px', ty: '-23px', size: 'w-4 h-5' },
+  { tx: '44px', ty: '60px', size: 'w-4 h-5' },
+  { tx: '-44px', ty: '60px', size: 'w-4 h-5' },
+  { tx: '-70px', ty: '-23px', size: 'w-4 h-5' },
+  { tx: '32px', ty: '-46px', size: 'w-3 h-3.5' },
+  { tx: '50px', ty: '25px', size: 'w-3 h-3.5' },
+  { tx: '0px', ty: '54px', size: 'w-3 h-3.5' },
+  { tx: '-50px', ty: '25px', size: 'w-3 h-3.5' },
+  { tx: '-32px', ty: '-46px', size: 'w-3 h-3.5' },
 ];
 
-// 輪切りオクラの断面SVGアイコン
+// 輪切りオクラ断面SVG
 function OkuraSliceIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <path
-        d="M50 5 C62 5, 92 27, 95 39 C98 51, 86 86, 76 93 C66 100, 34 100, 24 93 C14 86, 2 51, 5 39 C8 27, 38 5, 50 5 Z"
-        fill="#16a34a"
-        stroke="#14532d"
-        strokeWidth="4"
-      />
-      <path
-        d="M50 13 C60 13, 84 31, 87 41 C89 51, 79 80, 71 86 C63 91, 37 91, 29 86 C21 80, 11 51, 13 41 C16 31, 40 13, 50 13 Z"
-        fill="#bef264"
-      />
+      <path d="M50 5 C62 5, 92 27, 95 39 C98 51, 86 86, 76 93 C66 100, 34 100, 24 93 C14 86, 2 51, 5 39 C8 27, 38 5, 50 5 Z" fill="#16a34a" stroke="#14532d" strokeWidth="4" />
+      <path d="M50 13 C60 13, 84 31, 87 41 C89 51, 79 80, 71 86 C63 91, 37 91, 29 86 C21 80, 11 51, 13 41 C16 31, 40 13, 50 13 Z" fill="#bef264" />
       <ellipse cx="50" cy="31" rx="8" ry="11" fill="#4d7c0f" />
       <ellipse cx="69" cy="45" rx="8" ry="11" transform="rotate(72 69 45)" fill="#4d7c0f" />
       <ellipse cx="62" cy="68" rx="8" ry="11" transform="rotate(144 62 68)" fill="#4d7c0f" />
@@ -157,6 +196,197 @@ function OkuraSliceIcon({ className = 'w-7 h-7' }: { className?: string }) {
   );
 }
 
+// キャラクター描画コンポーネント
+function CharacterIllustration({ charType, isHit }: { charType: CharType; isHit: boolean }) {
+  switch (charType) {
+    case 'okura':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <path d="M50 12 C32 30, 22 62, 25 105 L75 105 C78 62, 68 30, 50 12 Z" fill={isHit ? '#ef4444' : '#22c55e'} stroke="#15803d" strokeWidth="3" />
+          <path d="M50 12 L42 105 M50 12 L58 105" stroke="#16a34a" strokeWidth="1.5" opacity="0.6" />
+          <path d="M32 48 L45 52 M68 48 L55 52" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" />
+          {isHit ? (
+            <>
+              <path d="M35 56 L43 60 L35 64" fill="none" stroke="#1f2937" strokeWidth="3" strokeLinecap="round" />
+              <path d="M65 56 L57 60 L65 64" fill="none" stroke="#1f2937" strokeWidth="3" strokeLinecap="round" />
+            </>
+          ) : (
+            <>
+              <circle cx="40" cy="59" r="3.5" fill="#1f2937" />
+              <circle cx="60" cy="59" r="3.5" fill="#1f2937" />
+            </>
+          )}
+          <path d="M33 72 Q50 65 67 72 Q62 78 50 75 Q38 78 33 72 Z" fill="#1f2937" />
+          <path d="M32 77 Q30 93 50 97 Q70 93 68 77 Q60 86 50 86 Q40 86 32 77 Z" fill="#374151" />
+          <ellipse cx="50" cy="81" rx="6" ry={isHit ? '6' : '3'} fill="#991b1b" />
+        </svg>
+      );
+    case 'tomato':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <ellipse cx="50" cy="68" rx="34" ry="30" fill={isHit ? '#fca5a5' : '#ef4444'} stroke="#991b1b" strokeWidth="3" />
+          {/* ヘタ */}
+          <path d="M50 42 L35 30 L45 43 L28 45 L44 49 L38 60 L50 51 L62 60 L56 49 L72 45 L55 43 L65 30 Z" fill="#16a34a" stroke="#14532d" strokeWidth="1.5" />
+          {isHit ? (
+            <text x="50" y="74" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#7f1d1d">＞＜</text>
+          ) : (
+            <>
+              <circle cx="38" cy="68" r="4" fill="#1f2937" />
+              <circle cx="62" cy="68" r="4" fill="#1f2937" />
+              <path d="M43 78 Q50 85 57 78" fill="none" stroke="#1f2937" strokeWidth="3" strokeLinecap="round" />
+            </>
+          )}
+        </svg>
+      );
+    case 'chili':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <path d="M55 25 C75 35, 78 75, 42 102 C35 106, 28 100, 34 92 C52 70, 50 45, 42 30 Z" fill={isHit ? '#fde047' : '#dc2626'} stroke="#7f1d1d" strokeWidth="3" />
+          <path d="M46 27 Q42 14 52 10" fill="none" stroke="#15803d" strokeWidth="4" strokeLinecap="round" />
+          {isHit ? (
+            <text x="54" y="65" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#7f1d1d">× ×</text>
+          ) : (
+            <>
+              <path d="M45 50 L54 54 M66 50 L57 54" stroke="#1f2937" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="49" cy="58" r="3" fill="#1f2937" />
+              <circle cx="61" cy="58" r="3" fill="#1f2937" />
+              <path d="M48 68 Q55 64 62 68" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
+            </>
+          )}
+        </svg>
+      );
+    case 'watermelon':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <circle cx="50" cy="65" r="35" fill={isHit ? '#f87171' : '#22c55e'} stroke="#14532d" strokeWidth="3.5" />
+          {/* 縞模様 */}
+          <path d="M36 33 Q28 65 36 97 M50 30 L50 100 M64 33 Q72 65 64 97" fill="none" stroke="#14532d" strokeWidth="4" />
+          {isHit ? (
+            <text x="50" y="72" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#fef08a">💥</text>
+          ) : (
+            <>
+              <circle cx="39" cy="62" r="4" fill="#1f2937" />
+              <circle cx="61" cy="62" r="4" fill="#1f2937" />
+              <rect x="42" y="73" width="16" height="6" rx="3" fill="#991b1b" />
+            </>
+          )}
+        </svg>
+      );
+    case 'king':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          {/* 王冠 */}
+          <path d="M26 30 L34 12 L50 24 L66 12 L74 30 Z" fill="#facc15" stroke="#b45309" strokeWidth="3" />
+          <circle cx="50" cy="68" r="33" fill={isHit ? '#fef08a' : '#eab308'} stroke="#a16207" strokeWidth="3.5" />
+          <path d="M32 54 L46 58 M68 54 L54 58" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" />
+          <circle cx="40" cy="64" r="4" fill="#1f2937" />
+          <circle cx="60" cy="64" r="4" fill="#1f2937" />
+          <path d="M34 76 Q50 69 66 76 Q60 83 50 79 Q40 83 34 76 Z" fill="#ffffff" />
+          <path d="M38 82 Q50 94 62 82" fill="none" stroke="#991b1b" strokeWidth="3.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'caterpillar':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <circle cx="50" cy="85" r="16" fill="#a3e635" stroke="#4d7c0f" strokeWidth="3" />
+          <circle cx="50" cy="65" r="18" fill="#bef264" stroke="#4d7c0f" strokeWidth="3" />
+          <circle cx="50" cy="43" r="20" fill="#d9f99d" stroke="#4d7c0f" strokeWidth="3" />
+          <path d="M40 25 Q35 12 28 15 M60 25 Q65 12 72 15" fill="none" stroke="#4d7c0f" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="43" cy="40" r="3.5" fill="#1f2937" />
+          <circle cx="57" cy="40" r="3.5" fill="#1f2937" />
+          <path d="M45 49 Q50 54 55 49" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'ladybug':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <circle cx="50" cy="66" r="28" fill="#dc2626" stroke="#1f2937" strokeWidth="3" />
+          <path d="M50 38 L50 94" stroke="#1f2937" strokeWidth="3" />
+          <circle cx="39" cy="58" r="4" fill="#1f2937" />
+          <circle cx="61" cy="58" r="4" fill="#1f2937" />
+          <circle cx="37" cy="75" r="4.5" fill="#1f2937" />
+          <circle cx="63" cy="75" r="4.5" fill="#1f2937" />
+          <path d="M34 44 Q50 26 66 44 Z" fill="#1f2937" />
+        </svg>
+      );
+    case 'cactus':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <rect x="36" y="30" width="28" height="72" rx="14" fill="#15803d" stroke="#14532d" strokeWidth="3" />
+          <path d="M36 62 H24 V46 M64 56 H76 V40" fill="none" stroke="#15803d" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="44" cy="52" r="3" fill="#fef08a" />
+          <circle cx="56" cy="52" r="3" fill="#fef08a" />
+          <path d="M28 42 L22 38 M72 36 L78 32 M50 28 L50 20" stroke="#fef08a" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      );
+    case 'crab':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <ellipse cx="50" cy="70" rx="28" ry="20" fill="#ea580c" stroke="#7c2d12" strokeWidth="3" />
+          <circle cx="26" cy="44" r="11" fill="#f97316" stroke="#7c2d12" strokeWidth="2.5" />
+          <circle cx="74" cy="44" r="11" fill="#f97316" stroke="#7c2d12" strokeWidth="2.5" />
+          <circle cx="42" cy="64" r="3.5" fill="#1f2937" />
+          <circle cx="58" cy="64" r="3.5" fill="#1f2937" />
+        </svg>
+      );
+    case 'fairy':
+      return (
+        <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
+          <ellipse cx="32" cy="56" rx="16" ry="10" transform="rotate(-25 32 56)" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="2" />
+          <ellipse cx="68" cy="56" rx="16" ry="10" transform="rotate(25 68 56)" fill="#e0f2fe" stroke="#38bdf8" strokeWidth="2" />
+          <circle cx="50" cy="62" r="22" fill="#fbcfe8" stroke="#db2777" strokeWidth="2.5" />
+          <circle cx="43" cy="60" r="3" fill="#1f2937" />
+          <circle cx="57" cy="60" r="3" fill="#1f2937" />
+          <path d="M46 69 Q50 73 54 69" fill="none" stroke="#db2777" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      );
+  }
+}
+
+// 野菜ごとの「弾け飛びエフェクト」コンポーネント
+function BurstEffect({ burstVeggie }: { burstVeggie: VeggieKey | 'warn' }) {
+  if (burstVeggie === 'warn') {
+    return (
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl animate-pop-slice">
+        💥
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="animate-shockwave absolute left-1/2 top-1/2 w-14 h-14 rounded-full border-4 border-yellow-300 bg-white/40" />
+      <div className="absolute left-1/2 top-1/2 animate-pop-slice">
+        {burstVeggie === 'okura' && <OkuraSliceIcon className="w-11 h-11 drop-shadow-md" />}
+        {burstVeggie === 'tomato' && <span className="text-3xl">🍅</span>}
+        {burstVeggie === 'chili' && <span className="text-3xl">🔥</span>}
+        {burstVeggie === 'watermelon' && <span className="text-3xl">🍉</span>}
+        {burstVeggie === 'king' && <span className="text-3xl">🌈</span>}
+      </div>
+      {BURST_VECTORS.map((vec, i) => {
+        let particleClass = 'rounded-full bg-amber-50 border-2 border-green-600'; // オクラの白い種
+        if (burstVeggie === 'tomato') {
+          particleClass = i % 2 === 0 ? 'rounded-full bg-red-500 border border-red-700' : 'rounded-full bg-yellow-300'; // 赤果汁＆黄種
+        } else if (burstVeggie === 'chili') {
+          particleClass = i % 2 === 0 ? 'rotate-45 bg-orange-500 border border-red-600' : 'rounded-full bg-yellow-300'; // 炎の火花
+        } else if (burstVeggie === 'watermelon') {
+          particleClass = 'rounded-full bg-gray-900 border border-gray-600'; // スイカの黒い種
+        } else if (burstVeggie === 'king') {
+          const rainbow = ['bg-red-400', 'bg-yellow-300', 'bg-green-400', 'bg-sky-400', 'bg-purple-400'];
+          particleClass = `rounded-full ${rainbow[i % rainbow.length]} border border-white`;
+        }
+        return (
+          <span
+            key={i}
+            style={{ '--tx': vec.tx, '--ty': vec.ty } as React.CSSProperties}
+            className={`animate-seed-explode absolute left-1/2 top-1/2 ${vec.size} ${particleClass} shadow-md`}
+          />
+        );
+      })}
+    </>
+  );
+}
+
 const createInitialHoles = (): HoleState[] =>
   Array.from({ length: 9 }, (_, i) => ({
     id: i,
@@ -164,39 +394,48 @@ const createInitialHoles = (): HoleState[] =>
     isHit: false,
     charType: 'okura',
     burstKey: 0,
-    burstType: 'star',
+    burstVeggie: 'okura',
   }));
 
+const OBSTACLES: ObstacleKey[] = ['caterpillar', 'ladybug', 'cactus', 'crab', 'fairy'];
+const VEGGIES: VeggieKey[] = ['okura', 'tomato', 'chili', 'watermelon', 'king'];
+
 export default function OkuraTatakiPage() {
+  const [chapterIdx, setChapterIdx] = useState<number>(0);
   const [stageIdx, setStageIdx] = useState<number>(0);
+  const [isEndless, setIsEndless] = useState<boolean>(false);
+  const [endlessLives, setEndlessLives] = useState<number>(3);
+
   const [totalScore, setTotalScore] = useState<number>(0);
   const [stageScore, setStageScore] = useState<number>(0);
   const [combo, setCombo] = useState<number>(0);
   const [maxCombo, setMaxCombo] = useState<number>(0);
-  const [timeLeft, setTimeLeft] = useState<number>(STAGES[0].timeLimit);
+  const [timeLeft, setTimeLeft] = useState<number>(CHAPTERS[0].stages[0].timeLimit);
 
-  const [gameState, setGameState] = useState<'idle' | 'playing' | 'stage_clear' | 'all_clear' | 'game_over'>('idle');
+  const [gameState, setGameState] = useState<
+    'title' | 'chapter_intro' | 'playing' | 'stage_clear' | 'chapter_clear' | 'all_clear' | 'game_over'
+  >('title');
+
   const [isShaking, setIsShaking] = useState<boolean>(false);
+  const [isStunned, setIsStunned] = useState<boolean>(false);
   const [warnMessage, setWarnMessage] = useState<string | null>(null);
+  const [showDevMenu, setShowDevMenu] = useState<boolean>(false);
 
   const [holes, setHoles] = useState<HoleState[]>(createInitialHoles);
 
-  // タップ瞬間にズレなく最新状態を参照するためのRef（Reactバッチ遅延バグ対策）
   const holesRef = useRef<HoleState[]>(holes);
   holesRef.current = holes;
-
   const comboRef = useRef<number>(combo);
   comboRef.current = combo;
-
   const stageScoreRef = useRef<number>(stageScore);
   stageScoreRef.current = stageScore;
-
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const popTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const currentStage = STAGES[stageIdx];
+  const currentChapter = CHAPTERS[chapterIdx];
+  const currentStage = currentChapter.stages[stageIdx];
 
-  // 「パァーン！」と弾ける破裂音ミックス効果音（Web Audio API）
+  // 効果音再生
   const playSound = (type: 'hit' | 'king' | 'bad' | 'clear', currentCombo = 0) => {
     try {
       const AudioCtx =
@@ -237,7 +476,7 @@ export default function OkuraTatakiPage() {
         return;
       }
 
-      // 1. 「パァーン！」の破裂ノイズ（種が弾ける音）
+      // 破裂ノイズ（パァーン！）
       const bufferSize = Math.floor(ctx.sampleRate * 0.14);
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
@@ -261,7 +500,6 @@ export default function OkuraTatakiPage() {
       noiseGain.connect(ctx.destination);
       whiteNoise.start(now);
 
-      // 2. コンボ連動の爽快ヒットトーン
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       const baseFreq = type === 'king' ? 540 : Math.min(310 + currentCombo * 28, 920);
@@ -278,58 +516,102 @@ export default function OkuraTatakiPage() {
       osc.start(now);
       osc.stop(now + 0.16);
     } catch {
-      // 音声ブロック環境は無視
+      // ignore
     }
   };
 
-  // ステージ開始
-  const startStage = (targetIdx: number, resetTotal = false) => {
-    const cfg = STAGES[targetIdx];
-    setStageIdx(targetIdx);
+  // クリア遷移処理
+  const triggerClear = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    setHoles((h) => h.map((hole) => ({ ...hole, isUp: false, isHit: false })));
+    playSound('clear');
+
+    if (stageIdx + 1 < currentChapter.stages.length) {
+      setGameState('stage_clear');
+    } else if (chapterIdx + 1 < CHAPTERS.length) {
+      setGameState('chapter_clear');
+    } else {
+      setGameState('all_clear');
+    }
+  };
+
+  // 章のイントロを開く
+  const openChapterIntro = (targetChapIdx: number, resetTotal = false) => {
+    setIsEndless(false);
+    setChapterIdx(targetChapIdx);
+    setStageIdx(0);
     if (resetTotal) {
       setTotalScore(0);
       setMaxCombo(0);
     }
+    setGameState('chapter_intro');
+  };
+
+  // ステージ開始
+  const startStage = (targetChapIdx: number, targetStageIdx: number) => {
+    const cfg = CHAPTERS[targetChapIdx].stages[targetStageIdx];
+    setIsEndless(false);
+    setChapterIdx(targetChapIdx);
+    setStageIdx(targetStageIdx);
     setStageScore(0);
     stageScoreRef.current = 0;
     setCombo(0);
     comboRef.current = 0;
     setTimeLeft(cfg.timeLimit);
     setWarnMessage(null);
+    setIsStunned(false);
     const freshHoles = createInitialHoles();
     setHoles(freshHoles);
     holesRef.current = freshHoles;
     setGameState('playing');
   };
 
-  // カウントダウン＆クリア判定
+  // エンドレスモード開始
+  const startEndlessMode = () => {
+    setIsEndless(true);
+    setEndlessLives(3);
+    setTotalScore(0);
+    setStageScore(0);
+    stageScoreRef.current = 0;
+    setCombo(0);
+    comboRef.current = 0;
+    setMaxCombo(0);
+    setWarnMessage(null);
+    setIsStunned(false);
+    const freshHoles = createInitialHoles();
+    setHoles(freshHoles);
+    holesRef.current = freshHoles;
+    setGameState('playing');
+  };
+
+  // カウントダウンタイマー（通常モードのみ）
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || isEndless) return;
 
     timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setHoles((h) => h.map((hole) => ({ ...hole, isUp: false, isHit: false })));
-          if (stageScoreRef.current >= currentStage.targetScore) {
-            playSound('clear');
-            if (stageIdx + 1 < STAGES.length) {
-              setGameState('stage_clear');
-            } else {
-              setGameState('all_clear');
-            }
-          } else {
-            setGameState('game_over');
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [gameState, stageIdx, currentStage.targetScore]);
+  }, [gameState, isEndless]);
+
+  // 0秒到達時の判定（通常モード）
+  useEffect(() => {
+    if (gameState !== 'playing' || isEndless || timeLeft > 0) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    setHoles((h) => h.map((hole) => ({ ...hole, isUp: false, isHit: false })));
+
+    if (stageScoreRef.current >= currentStage.targetScore) {
+      triggerClear();
+    } else {
+      setGameState('game_over');
+    }
+  }, [timeLeft, gameState, isEndless]);
 
   // キャラクターランダム出現ループ
   useEffect(() => {
@@ -337,16 +619,28 @@ export default function OkuraTatakiPage() {
 
     const popUp = () => {
       const randomIdx = Math.floor(Math.random() * 9);
-      const stayDuration =
-        Math.floor(Math.random() * (currentStage.stayMax - currentStage.stayMin)) +
-        currentStage.stayMin;
+      const stayDuration = isEndless
+        ? Math.max(380, 650 - Math.floor(stageScoreRef.current / 100) * 15)
+        : Math.floor(Math.random() * (currentStage.stayMax - currentStage.stayMin)) + currentStage.stayMin;
 
       const rand = Math.random();
-      let charType: CharacterType = 'okura';
-      if (rand < currentStage.caterpillarRate) {
-        charType = 'caterpillar';
-      } else if (rand < currentStage.caterpillarRate + currentStage.kingRate) {
-        charType = 'king_okura';
+      let charType: CharType = currentChapter.veggie;
+
+      if (isEndless) {
+        if (rand < 0.25) {
+          charType = OBSTACLES[Math.floor(Math.random() * OBSTACLES.length)];
+        } else {
+          charType = VEGGIES[Math.floor(Math.random() * VEGGIES.length)];
+        }
+      } else {
+        if (rand < currentStage.obstacleRate) {
+          charType = currentChapter.obstacle;
+        } else if (currentChapter.veggie === 'king' && rand < 0.65) {
+          // 最終章はこれまでの野菜も総登場！
+          charType = VEGGIES[Math.floor(Math.random() * 4)];
+        } else if (rand < currentStage.obstacleRate + currentStage.kingRate) {
+          charType = 'king';
+        }
       }
 
       setHoles((prev) =>
@@ -361,7 +655,8 @@ export default function OkuraTatakiPage() {
         setHoles((prev) =>
           prev.map((hole, idx) => {
             if (idx === randomIdx) {
-              if (hole.isUp && !hole.isHit && hole.charType !== 'caterpillar') {
+              const isObs = OBSTACLES.includes(hole.charType as ObstacleKey);
+              if (hole.isUp && !hole.isHit && !isObs) {
                 setCombo(0);
                 comboRef.current = 0;
               }
@@ -372,9 +667,10 @@ export default function OkuraTatakiPage() {
         );
       }, stayDuration);
 
-      const nextInterval =
-        Math.floor(Math.random() * (currentStage.popIntervalMax - currentStage.popIntervalMin)) +
-        currentStage.popIntervalMin;
+      const nextInterval = isEndless
+        ? Math.max(220, 420 - Math.floor(stageScoreRef.current / 100) * 12)
+        : Math.floor(Math.random() * (currentStage.popIntervalMax - currentStage.popIntervalMin)) +
+          currentStage.popIntervalMin;
       popTimerRef.current = setTimeout(popUp, nextInterval);
     };
 
@@ -383,23 +679,19 @@ export default function OkuraTatakiPage() {
     return () => {
       if (popTimerRef.current) clearTimeout(popTimerRef.current);
     };
-  }, [gameState, currentStage]);
+  }, [gameState, isEndless, currentChapter, currentStage]);
 
-  // タップで叩く処理（同期Ref参照により100%確実にコンボ＆スコア加算）
+  // タップで叩く処理
   const handleWhack = (id: number) => {
-    if (gameState !== 'playing') return;
+    if (gameState !== 'playing' || isStunned) return;
 
     const targetHole = holesRef.current.find((h) => h.id === id);
-
-    // すでに叩かれた後の連打は無視（空振りペナルティにしない）
-    if (targetHole && targetHole.isUp && targetHole.isHit) {
-      return;
-    }
+    if (targetHole && targetHole.isUp && targetHole.isHit) return;
 
     if (targetHole && targetHole.isUp && !targetHole.isHit) {
       const hitChar = targetHole.charType;
+      const isObstacle = OBSTACLES.includes(hitChar as ObstacleKey);
 
-      // 穴の状態を即更新＆種バースト発火
       setHoles((prev) =>
         prev.map((hole) =>
           hole.id === id
@@ -407,26 +699,47 @@ export default function OkuraTatakiPage() {
                 ...hole,
                 isHit: true,
                 burstKey: Date.now() + Math.random(),
-                burstType: hitChar === 'caterpillar' ? 'warn' : 'star',
+                burstVeggie: isObstacle ? 'warn' : (hitChar as VeggieKey),
               }
             : hole
         )
       );
 
-      if (hitChar === 'caterpillar') {
+      if (isObstacle) {
         setCombo(0);
         comboRef.current = 0;
-        setStageScore((s) => {
-          const next = Math.max(0, s - 30);
-          stageScoreRef.current = next;
-          return next;
-        });
-        setTotalScore((s) => Math.max(0, s - 30));
         playSound('bad');
-        setWarnMessage('🐛 イモムシは叩いちゃダメ！ -30点');
-        setTimeout(() => setWarnMessage(null), 900);
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 180);
+
+        if (hitChar === 'cactus') {
+          setIsStunned(true);
+          setWarnMessage('🌵 サボテンのトゲで1秒しびれた！');
+          setTimeout(() => {
+            setIsStunned(false);
+            setWarnMessage(null);
+          }, 1000);
+        } else {
+          setStageScore((s) => {
+            const next = Math.max(0, s - 30);
+            stageScoreRef.current = next;
+            return next;
+          });
+          setTotalScore((s) => Math.max(0, s - 30));
+          setWarnMessage('⚠️ お邪魔キャラは叩いちゃダメ！ -30点');
+          setTimeout(() => setWarnMessage(null), 900);
+        }
+
+        if (isEndless) {
+          setEndlessLives((l) => {
+            if (l <= 1) {
+              if (popTimerRef.current) clearTimeout(popTimerRef.current);
+              setGameState('game_over');
+              return 0;
+            }
+            return l - 1;
+          });
+        }
       } else {
         const nextCombo = comboRef.current + 1;
         comboRef.current = nextCombo;
@@ -434,41 +747,55 @@ export default function OkuraTatakiPage() {
         setMaxCombo((m) => Math.max(m, nextCombo));
 
         const isFever = nextCombo >= 10;
-        const basePoint = hitChar === 'king_okura' ? 35 : 15;
+        const basePoint = hitChar === 'king' ? 35 : 15;
         const gained = (isFever ? basePoint * 2 : basePoint) + Math.min(nextCombo * 2, 30);
 
-        setStageScore((s) => {
-          const next = s + gained;
-          stageScoreRef.current = next;
-          return next;
-        });
+        const nextStageScore = stageScoreRef.current + gained;
+        stageScoreRef.current = nextStageScore;
+        setStageScore(nextStageScore);
         setTotalScore((s) => s + gained);
 
-        playSound(hitChar === 'king_okura' ? 'king' : 'hit', nextCombo);
+        playSound(hitChar === 'king' ? 'king' : 'hit', nextCombo);
         setIsShaking(true);
         setTimeout(() => setIsShaking(false), 110);
+
+        if (!isEndless && currentStage.instantClear && nextStageScore >= currentStage.targetScore) {
+          setTimeout(() => {
+            triggerClear();
+          }, 220);
+        }
       }
     } else {
-      // 本当に何も出ていない穴をタップした時だけ空振りリセット
       setCombo(0);
       comboRef.current = 0;
     }
   };
 
-  // LINEでシェアする処理
+  // ランク判定（クリア・リザルト用）
+  const getRankLabel = (score: number) => {
+    if (score >= 8000) return '👑 SSSランク：伝説の野菜神';
+    if (score >= 5000) return '🏆 SSランク：黄金の収穫王';
+    if (score >= 3000) return '🥇 Sランク：ベジタブルマスター';
+    if (score >= 1500) return '🥈 Aランク：凄腕の農夫';
+    return '🌱 Bランク：見習い農夫';
+  };
+
+  // LINEでシェア
   const handleLineShare = () => {
     const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-    const stageText =
-      gameState === 'all_clear'
-        ? '全5ステージ完全制覇＆神秘の種ゲット！'
-        : `Stage ${currentStage.stage}まで到達！`;
-    const text = `⭐【オクラたたき】で遊んだよ！\n記録：${totalScore}点（${stageText} / 最大${maxCombo}コンボ）\nオクラを叩いて種をパァーンと弾き飛ばそう！👇\n${shareUrl}`;
+    const statusText = isEndless
+      ? `無限収穫祭モードで ${totalScore}点 達成！`
+      : gameState === 'all_clear'
+      ? `全5章（全25ステージ）完全制覇！称号：${getRankLabel(totalScore)}`
+      : `${currentChapter.name}（Stage ${currentStage.stage}）まで到達！`;
+    const text = `⭐【オクラたたき】で遊んだよ！\n${statusText}\n累計スコア：${totalScore}点（最大${maxCombo}コンボ）\n野菜を叩いて神秘の種を届けよう！👇\n${shareUrl}`;
     const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
     window.open(lineUrl, '_blank', 'noopener,noreferrer');
   };
 
   const isFever = gameState === 'playing' && combo >= 10;
   const progressPercent = Math.min(100, Math.round((stageScore / currentStage.targetScore) * 100));
+  const isGoalReached = stageScore >= currentStage.targetScore;
 
   return (
     <main
@@ -478,31 +805,14 @@ export default function OkuraTatakiPage() {
     >
       <style>{`
         @keyframes seed-pop-explode {
-          0% {
-            transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
-            opacity: 1;
-          }
-          20% {
-            transform: translate(calc(-50% + var(--tx) * 0.45), calc(-50% + var(--ty) * 0.45)) scale(1.35) rotate(90deg);
-            opacity: 1;
-          }
-          75% {
-            opacity: 1;
-          }
-          100% {
-            transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.3) rotate(240deg);
-            opacity: 0;
-          }
+          0% { transform: translate(-50%, -50%) scale(0.4) rotate(0deg); opacity: 1; }
+          20% { transform: translate(calc(-50% + var(--tx) * 0.45), calc(-50% + var(--ty) * 0.45)) scale(1.35) rotate(90deg); opacity: 1; }
+          75% { opacity: 1; }
+          100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.3) rotate(240deg); opacity: 0; }
         }
         @keyframes shockwave-ring {
-          0% {
-            transform: translate(-50%, -50%) scale(0.2);
-            opacity: 0.95;
-          }
-          100% {
-            transform: translate(-50%, -50%) scale(2.3);
-            opacity: 0;
-          }
+          0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; }
+          100% { transform: translate(-50%, -50%) scale(2.3); opacity: 0; }
         }
         @keyframes board-shake {
           0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -515,40 +825,31 @@ export default function OkuraTatakiPage() {
           45% { transform: translate(-50%, -85%) scale(1.35) rotate(15deg); opacity: 1; }
           100% { transform: translate(-50%, -120%) scale(0.95) rotate(35deg); opacity: 0; }
         }
-        .animate-seed-explode {
-          animation: seed-pop-explode 0.46s cubic-bezier(0.12, 0.95, 0.25, 1) forwards;
-        }
-        .animate-shockwave {
-          animation: shockwave-ring 0.32s ease-out forwards;
-        }
-        .animate-board-shake {
-          animation: board-shake 0.12s ease-in-out;
-        }
-        .animate-pop-slice {
-          animation: pop-slice 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .animate-seed-explode { animation: seed-pop-explode 0.46s cubic-bezier(0.12, 0.95, 0.25, 1) forwards; }
+        .animate-shockwave { animation: shockwave-ring 0.32s ease-out forwards; }
+        .animate-board-shake { animation: board-shake 0.12s ease-in-out; }
+        .animate-pop-slice { animation: pop-slice 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
 
-      {/* 外枠：ステージ進行に合わせて畑が育つフレーム */}
       <div
         className={`max-w-md w-full rounded-3xl p-2.5 border-4 transition-all duration-500 shadow-2xl ${
-          currentStage.farmBgClass
+          isEndless ? 'bg-gradient-to-r from-yellow-200 via-amber-200 to-yellow-200 border-yellow-500' : currentStage.farmBgClass
         } ${isShaking ? 'animate-board-shake' : ''}`}
       >
-        {/* 畑の成長ステータスバー（上部） */}
-        <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-white/85 rounded-2xl text-xs font-bold text-gray-700 shadow-sm">
-          <span>{currentStage.farmLabel}</span>
-          <span className="tracking-widest text-sm">{currentStage.farmIcons.join('')}</span>
+        {/* 上部畑ステータス */}
+        <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-white/90 rounded-2xl text-xs font-bold text-gray-700 shadow-sm">
+          <span>{isEndless ? '♾️ 無限・黄金の収穫祭' : `${currentChapter.name}｜${currentStage.farmLabel}`}</span>
+          <span className="tracking-widest text-sm">{isEndless ? '👑🌈✨' : currentStage.farmIcons.join('')}</span>
         </div>
 
-        {/* ゲーム盤面カード */}
+        {/* メインカード */}
         <div
           className={`bg-white rounded-2xl p-5 border-4 transition-all ${
             isFever ? 'border-yellow-400 ring-4 ring-yellow-300/70' : 'border-green-600'
           }`}
         >
-          {/* ヘッダー */}
-          <div className="flex items-center justify-between mb-1">
+          {/* タイトルヘッダー */}
+          <div className="flex items-center justify-between mb-2">
             <h1 className="flex items-center gap-2 text-2xl font-extrabold text-green-700">
               <OkuraSliceIcon className="w-8 h-8 shrink-0 drop-shadow-sm" />
               <span>オクラたたき</span>
@@ -559,262 +860,343 @@ export default function OkuraTatakiPage() {
               </span>
             ) : (
               <span className="px-2.5 py-0.5 text-xs font-bold bg-green-100 text-green-800 rounded-full">
-                {currentStage.title}
+                {isEndless ? 'エンドレスモード' : currentStage.title}
               </span>
             )}
           </div>
 
-          {/* 目標スコア進捗ゲージ */}
-          <div className="mb-3">
-            <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
-              <span>
-                ステージ目標：{stageScore} / {currentStage.targetScore}点
-              </span>
-              <span>累計：{totalScore}点</span>
-            </div>
-            <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-200 ${
-                  progressPercent >= 100 ? 'bg-yellow-400' : 'bg-green-500'
-                }`}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </div>
-
-          {/* コンボ・残り時間 */}
-          <div className="grid grid-cols-2 gap-2 bg-green-50 rounded-xl px-3 py-2 mb-4 border border-green-200">
-            <div className="text-center border-r border-green-200">
-              <span className="block text-[10px] font-bold text-orange-700">コンボ</span>
-              <span
-                className={`text-lg font-black inline-block transition-transform ${
-                  combo >= 5 ? 'text-orange-600 scale-110' : 'text-gray-700'
-                }`}
-              >
-                {combo}
-                <span className="text-xs ml-0.5">連鎖</span>
-              </span>
-            </div>
-            <div className="text-center">
-              <span className="block text-[10px] font-bold text-red-800">のこり時間</span>
-              <span
-                className={`text-lg font-black ${
-                  timeLeft <= 5 && gameState === 'playing'
-                    ? 'text-red-600 animate-pulse'
-                    : 'text-gray-800'
-                }`}
-              >
-                {timeLeft}秒
-              </span>
-            </div>
-          </div>
-
-          {/* 警告ポップアップ枠 */}
-          <div className="h-5 mb-2 flex items-center justify-center">
-            {warnMessage ? (
-              <span className="text-xs font-black text-red-600 bg-red-100 px-3 py-0.5 rounded-full animate-pulse">
-                {warnMessage}
-              </span>
-            ) : (
-              <span className="text-[11px] text-gray-400">
-                ※ 🐛イモムシは叩いちゃダメ！
-              </span>
-            )}
-          </div>
-
-          {/* 3x3 穴グリッド */}
-          <div className="grid grid-cols-3 gap-3 bg-amber-800 p-3.5 rounded-2xl shadow-inner mb-5">
-            {holes.map((hole) => (
-              <div key={hole.id} className="relative h-24 w-full">
-                <button
-                  type="button"
-                  onPointerDown={() => handleWhack(hole.id)}
-                  className="relative h-full w-full bg-amber-950 rounded-full overflow-hidden border-4 border-amber-900 focus:outline-none active:scale-90 transition-transform touch-manipulation"
-                >
-                  <div
-                    className={`absolute inset-x-0 bottom-0 flex justify-center transition-transform duration-100 ${
-                      hole.isUp ? 'translate-y-1' : 'translate-y-24'
-                    } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
-                  >
-                    {hole.charType === 'caterpillar' ? (
-                      <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
-                        <circle cx="50" cy="85" r="16" fill="#a3e635" stroke="#4d7c0f" strokeWidth="3" />
-                        <circle cx="50" cy="65" r="18" fill="#bef264" stroke="#4d7c0f" strokeWidth="3" />
-                        <circle cx="50" cy="43" r="20" fill="#d9f99d" stroke="#4d7c0f" strokeWidth="3" />
-                        <path d="M40 25 Q35 12 28 15 M60 25 Q65 12 72 15" fill="none" stroke="#4d7c0f" strokeWidth="3" strokeLinecap="round" />
-                        {hole.isHit ? (
-                          <text x="50" y="50" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#dc2626">
-                            × ×
-                          </text>
-                        ) : (
-                          <>
-                            <circle cx="43" cy="40" r="3.5" fill="#1f2937" />
-                            <circle cx="57" cy="40" r="3.5" fill="#1f2937" />
-                            <path d="M45 49 Q50 54 55 49" fill="none" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" />
-                          </>
-                        )}
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
-                        {hole.charType === 'king_okura' && (
-                          <path
-                            d="M32 22 L38 8 L50 18 L62 8 L68 22 Z"
-                            fill="#facc15"
-                            stroke="#b45309"
-                            strokeWidth="2.5"
-                          />
-                        )}
-                        <path
-                          d="M50 14 C32 32, 22 62, 25 105 L75 105 C78 62, 68 32, 50 14 Z"
-                          fill={
-                            hole.isHit
-                              ? '#ef4444'
-                              : hole.charType === 'king_okura'
-                              ? '#eab308'
-                              : '#22c55e'
-                          }
-                          stroke={hole.charType === 'king_okura' ? '#a16207' : '#15803d'}
-                          strokeWidth="3"
-                        />
-                        <path
-                          d="M50 14 L42 105 M50 14 L58 105"
-                          stroke={hole.charType === 'king_okura' ? '#ca8a04' : '#16a34a'}
-                          strokeWidth="1.5"
-                          opacity="0.6"
-                        />
-                        <path
-                          d="M32 48 L45 52 M68 48 L55 52"
-                          stroke="#1f2937"
-                          strokeWidth="4"
-                          strokeLinecap="round"
-                        />
-                        {hole.isHit ? (
-                          <>
-                            <path d="M35 56 L43 60 L35 64" fill="none" stroke="#1f2937" strokeWidth="3" strokeLinecap="round" />
-                            <path d="M65 56 L57 60 L65 64" fill="none" stroke="#1f2937" strokeWidth="3" strokeLinecap="round" />
-                          </>
-                        ) : (
-                          <>
-                            <circle cx="40" cy="59" r="3.5" fill="#1f2937" />
-                            <circle cx="60" cy="59" r="3.5" fill="#1f2937" />
-                          </>
-                        )}
-                        <path d="M33 72 Q50 65 67 72 Q62 78 50 75 Q38 78 33 72 Z" fill="#1f2937" />
-                        <path d="M32 77 Q30 93 50 97 Q70 93 68 77 Q60 86 50 86 Q40 86 32 77 Z" fill="#374151" />
-                        <ellipse cx="50" cy="81" rx="6" ry={hole.isHit ? '6' : '3'} fill="#991b1b" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-
-                {/* ヒット時の「パァーン！」衝撃波 ＆ 輪切り断面 ＆ 10粒種バースト */}
-                {hole.burstKey > 0 && (
-                  <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
-                    {hole.burstType === 'warn' ? (
-                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl animate-pop-slice">
-                        💥
-                      </div>
-                    ) : (
-                      <>
-                        {/* パァーン！と広がる光の衝撃波リング */}
-                        <div className="animate-shockwave absolute left-1/2 top-1/2 w-14 h-14 rounded-full border-4 border-yellow-300 bg-white/40" />
-                        {/* 中心に輪切りオクラ断面が弾け出る */}
-                        <div className="absolute left-1/2 top-1/2 animate-pop-slice">
-                          <OkuraSliceIcon className="w-11 h-11 drop-shadow-md" />
-                        </div>
-                        {/* 10粒の白い種が四方八方へパァーン！と弾け飛ぶ */}
-                        {BURST_SEEDS.map((seed, i) => (
-                          <span
-                            key={i}
-                            style={{ '--tx': seed.tx, '--ty': seed.ty } as React.CSSProperties}
-                            className={`animate-seed-explode absolute left-1/2 top-1/2 ${seed.size} rounded-full bg-amber-50 border-2 border-green-600 shadow-md`}
-                          />
-                        ))}
-                      </>
-                    )}
-                  </div>
-                )}
+          {/* タイトル画面 */}
+          {gameState === 'title' && (
+            <div className="space-y-4 py-2 text-center">
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4">
+                <p className="text-xs font-black text-amber-800 mb-1">📖 プロローグ</p>
+                <p className="text-xs text-gray-700 leading-relaxed">
+                  干ばつの呪いで眠った野菜たちを叩き起こし、4つの「神秘の種」を集めて天空の『野菜の王様』へ黄金の収穫祭を取り戻そう！
+                </p>
               </div>
-            ))}
-          </div>
 
-          {/* 状態ごとのアクションボタン群 */}
-          {gameState !== 'playing' && (
-            <div className="space-y-2.5 text-center">
-              {gameState === 'stage_clear' && (
-                <div className="bg-green-100 border-2 border-green-400 rounded-xl p-3">
-                  <p className="text-base font-black text-green-800">
-                    🎉 {currentStage.title} クリア！
-                  </p>
-                  <p className="text-xs font-bold text-green-700 mt-1">
-                    畑が一段階育ったで！次のステージへ進もう！
-                  </p>
-                </div>
-              )}
+              <div className="grid grid-cols-5 gap-1.5 text-center bg-green-50 p-2.5 rounded-xl border border-green-200">
+                <div><span className="text-xl block">⭐</span><span className="text-[10px] font-bold">1.オクラ</span></div>
+                <div><span className="text-xl block">🍅</span><span className="text-[10px] font-bold">2.トマト</span></div>
+                <div><span className="text-xl block">🌶️</span><span className="text-[10px] font-bold">3.唐辛子</span></div>
+                <div><span className="text-xl block">🍉</span><span className="text-[10px] font-bold">4.スイカ</span></div>
+                <div><span className="text-xl block">👑</span><span className="text-[10px] font-bold">5.王様</span></div>
+              </div>
 
-              {gameState === 'all_clear' && (
-                <div className="bg-gradient-to-r from-yellow-100 via-amber-100 to-yellow-100 border-2 border-yellow-400 rounded-xl p-3.5">
-                  <p className="text-lg font-black text-amber-800">
-                    👑 オクラ全5ステージ完全制覇！
-                  </p>
-                  <p className="text-xs font-bold text-green-800 mt-1">
-                    立派なオクラが豊作！『神秘の種のカケラ』を獲得したで！
-                  </p>
-                  <p className="text-sm font-black text-orange-700 mt-1">
-                    最終累計スコア：{totalScore}点（最大{maxCombo}連鎖）
-                  </p>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => openChapterIntro(0, true)}
+                className="w-full py-4 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-black text-lg rounded-xl shadow-lg transition-colors"
+              >
+                冒険をスタートする！ ➔
+              </button>
 
-              {gameState === 'game_over' && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                  <p className="text-base font-black text-red-700">
-                    時間切れ！目標まであと {currentStage.targetScore - stageScore}点！
-                  </p>
-                  <p className="text-xs font-bold text-gray-600 mt-0.5">
-                    累計スコア：{totalScore}点（最大{maxCombo}連鎖）
-                  </p>
-                </div>
-              )}
-
-              {/* メイン進行ボタン */}
-              {gameState === 'stage_clear' ? (
-                <button
-                  type="button"
-                  onClick={() => startStage(stageIdx + 1, false)}
-                  className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-black text-lg rounded-xl shadow-md transition-colors"
-                >
-                  次のステージへ進む！ ➔
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => startStage(0, true)}
-                  className="w-full py-3.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-black text-lg rounded-xl shadow-md transition-colors"
-                >
-                  {gameState === 'idle' ? 'スタート！' : '最初からもう一回遊ぶ！'}
-                </button>
-              )}
-
-              {/* LINEでシェアボタン */}
               <button
                 type="button"
                 onClick={handleLineShare}
-                className="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] active:bg-[#049f43] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2 transition-colors"
+                className="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
               >
-                <span className="text-base">💬</span>
+                <span>💬</span>
                 <span>LINEで友達にシェアする</span>
               </button>
             </div>
+          )}
+
+          {/* 章のイントロ画面 */}
+          {gameState === 'chapter_intro' && (
+            <div className="space-y-4 py-3 text-center">
+              <div className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-black rounded-full">
+                {currentChapter.name}
+              </div>
+              <h2 className="text-xl font-black text-gray-800">{currentChapter.subtitle}</h2>
+
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-left space-y-2">
+                <p className="text-xs font-bold text-gray-800 leading-relaxed">
+                  「{currentChapter.storyIntro}」
+                </p>
+                <div className="pt-2 border-t border-amber-200 flex items-center justify-between text-xs">
+                  <span className="font-bold text-green-700">🎯 ターゲット：{currentChapter.veggieName}</span>
+                  <span className="font-bold text-red-600">⚠️ 注意：{currentChapter.obstacleName}</span>
+                </div>
+                <p className="text-[11px] text-red-600 font-bold">
+                  ※ {currentChapter.obstacleName}：{currentChapter.obstacleDesc}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => startStage(chapterIdx, 0)}
+                className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
+              >
+                Stage 1 スタート！
+              </button>
+            </div>
+          )}
+
+          {/* プレイ中 ＆ リザルト共通盤面 */}
+          {gameState !== 'title' && gameState !== 'chapter_intro' && (
+            <>
+              {/* 進捗ゲージ */}
+              <div className="mb-3">
+                <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
+                  {isEndless ? (
+                    <span>のこりライフ：{'❤️'.repeat(endlessLives)}{'🖤'.repeat(3 - endlessLives)}</span>
+                  ) : (
+                    <span className={isGoalReached ? 'text-orange-600 font-black' : ''}>
+                      目標：{stageScore} / {currentStage.targetScore}点
+                    </span>
+                  )}
+                  <span>累計：{totalScore}点</span>
+                </div>
+                {!isEndless && (
+                  <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-200 ${
+                        isGoalReached ? 'bg-yellow-400' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* コンボ・残り時間 */}
+              <div className="grid grid-cols-2 gap-2 bg-green-50 rounded-xl px-3 py-2 mb-3 border border-green-200">
+                <div className="text-center border-r border-green-200">
+                  <span className="block text-[10px] font-bold text-orange-700">コンボ</span>
+                  <span
+                    className={`text-lg font-black inline-block transition-transform ${
+                      combo >= 5 ? 'text-orange-600 scale-110' : 'text-gray-700'
+                    }`}
+                  >
+                    {combo}
+                    <span className="text-xs ml-0.5">連鎖</span>
+                  </span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-[10px] font-bold text-red-800">
+                    {isEndless ? '最大コンボ' : 'のこり時間'}
+                  </span>
+                  <span
+                    className={`text-lg font-black ${
+                      !isEndless && timeLeft <= 5 && gameState === 'playing'
+                        ? 'text-red-600 animate-pulse'
+                        : 'text-gray-800'
+                    }`}
+                  >
+                    {isEndless ? `${maxCombo}連鎖` : `${timeLeft}秒`}
+                  </span>
+                </div>
+              </div>
+
+              {/* 警告バー */}
+              <div className="h-5 mb-2 flex items-center justify-center">
+                {warnMessage ? (
+                  <span className="text-xs font-black text-red-600 bg-red-100 px-3 py-0.5 rounded-full animate-pulse">
+                    {warnMessage}
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-500 font-medium">
+                    {isEndless
+                      ? '※ お邪魔キャラ3回ミスで終了！限界に挑め！'
+                      : `※ ${currentChapter.obstacleName}注意！（${
+                          currentStage.instantClear ? '目標到達で即クリア' : '0秒まで目標キープ'
+                        }）`}
+                  </span>
+                )}
+              </div>
+
+              {/* 3x3 穴グリッド */}
+              <div
+                className={`grid grid-cols-3 gap-3 bg-amber-800 p-3.5 rounded-2xl shadow-inner mb-4 transition-opacity ${
+                  isStunned ? 'opacity-60 ring-4 ring-yellow-400' : ''
+                }`}
+              >
+                {holes.map((hole) => (
+                  <div key={hole.id} className="relative h-24 w-full">
+                    <button
+                      type="button"
+                      onPointerDown={() => handleWhack(hole.id)}
+                      className="relative h-full w-full bg-amber-950 rounded-full overflow-hidden border-4 border-amber-900 focus:outline-none active:scale-90 transition-transform touch-manipulation"
+                    >
+                      <div
+                        className={`absolute inset-x-0 bottom-0 flex justify-center transition-transform duration-100 ${
+                          hole.isUp ? 'translate-y-1' : 'translate-y-24'
+                        } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
+                      >
+                        <CharacterIllustration charType={hole.charType} isHit={hole.isHit} />
+                      </div>
+                    </button>
+
+                    {hole.burstKey > 0 && (
+                      <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
+                        <BurstEffect burstVeggie={hole.burstVeggie} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* リザルト・進行ボタン */}
+              {gameState !== 'playing' && (
+                <div className="space-y-2.5 text-center">
+                  {gameState === 'stage_clear' && (
+                    <div className="bg-green-100 border-2 border-green-400 rounded-xl p-3">
+                      <p className="text-base font-black text-green-800">🎉 {currentStage.title} クリア！</p>
+                      <p className="text-xs font-bold text-green-700 mt-1">畑が一段階育ったで！次のステージへ！</p>
+                    </div>
+                  )}
+
+                  {gameState === 'chapter_clear' && (
+                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400 rounded-xl p-3.5">
+                      <p className="text-base font-black text-amber-900">🎊 {currentChapter.name} 完全制覇！</p>
+                      <p className="text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
+                      <span className="inline-block mt-1.5 px-3 py-0.5 bg-white rounded-full text-xs font-black text-orange-600 shadow-sm">
+                        獲得：{currentChapter.seedReward}
+                      </span>
+                    </div>
+                  )}
+
+                  {gameState === 'all_clear' && (
+                    <div className="bg-gradient-to-r from-yellow-100 via-amber-100 to-yellow-100 border-2 border-yellow-500 rounded-xl p-3.5">
+                      <p className="text-lg font-black text-amber-900">👑 全5章・完全大団円！！</p>
+                      <p className="text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
+                      <p className="text-sm font-black text-orange-700 mt-1.5">
+                        認定：{getRankLabel(totalScore)}
+                      </p>
+                      <p className="text-xs font-bold text-gray-600">
+                        最終スコア：{totalScore}点（最大{maxCombo}連鎖）
+                      </p>
+                    </div>
+                  )}
+
+                  {gameState === 'game_over' && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                      <p className="text-base font-black text-red-700">
+                        {isEndless ? '無限収穫祭 終了！' : `時間切れ！あと ${currentStage.targetScore - stageScore}点！`}
+                      </p>
+                      <p className="text-xs font-bold text-gray-700 mt-1">
+                        累計スコア：{totalScore}点（最大{maxCombo}連鎖）
+                      </p>
+                    </div>
+                  )}
+
+                  {/* メイン遷移ボタン */}
+                  {gameState === 'stage_clear' && (
+                    <button
+                      type="button"
+                      onClick={() => startStage(chapterIdx, stageIdx + 1)}
+                      className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
+                    >
+                      次のステージへ進む！ ➔
+                    </button>
+                  )}
+
+                  {gameState === 'chapter_clear' && (
+                    <button
+                      type="button"
+                      onClick={() => openChapterIntro(chapterIdx + 1, false)}
+                      className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
+                    >
+                      {CHAPTERS[chapterIdx + 1].name} へ進む！ ➔
+                    </button>
+                  )}
+
+                  {gameState === 'all_clear' && (
+                    <button
+                      type="button"
+                      onClick={startEndlessMode}
+                      className="w-full py-3.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-black text-base rounded-xl shadow-md"
+                    >
+                      ♾️ クリア特典：無限・黄金の収穫祭に挑む！
+                    </button>
+                  )}
+
+                  {gameState === 'game_over' && (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => (isEndless ? startEndlessMode() : startStage(chapterIdx, 0))}
+                        className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white font-black text-base rounded-xl shadow-md"
+                      >
+                        {isEndless ? '無限収穫祭にもう一回挑む！' : `${currentChapter.name}のStage 1からリトライ！`}
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleLineShare}
+                    className="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
+                  >
+                    <span>💬</span>
+                    <span>LINEで友達にシェアする</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGameState('title')}
+                    className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-700"
+                  >
+                    タイトルへ戻る
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
         {/* 下部の畑アイコンライン */}
         <div className="flex justify-around items-center pt-2 text-lg">
-          {currentStage.farmIcons.map((icon, i) => (
+          {(isEndless ? ['⭐', '🍅', '🌶️', '🍉', '👑'] : currentStage.farmIcons).map((icon, i) => (
             <span key={i}>{icon}</span>
           ))}
         </div>
+      </div>
+
+      {/* 🔧 テスト用クイックジャンプバー（公開前に削除可能） */}
+      <div className="max-w-md w-full mt-3 text-center">
+        <button
+          type="button"
+          onClick={() => setShowDevMenu((v) => !v)}
+          className="text-[11px] font-bold text-gray-500 underline"
+        >
+          {showDevMenu ? '▲ テストメニューを閉じる' : '🔧 テスト用：各章ジャンプ＆即クリア'}
+        </button>
+
+        {showDevMenu && (
+          <div className="mt-2 p-2.5 bg-gray-800 text-white rounded-xl text-xs space-y-2 shadow-lg">
+            <p className="text-[10px] text-gray-300">※ 動作確認用ショートカット</p>
+            <div className="flex flex-wrap justify-center gap-1.5">
+              {CHAPTERS.map((chap, idx) => (
+                <button
+                  key={chap.id}
+                  type="button"
+                  onClick={() => openChapterIntro(idx, false)}
+                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-[11px] font-bold"
+                >
+                  第{chap.id}章
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={startEndlessMode}
+                className="px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-[11px] font-bold"
+              >
+                ♾️無限
+              </button>
+            </div>
+            {gameState === 'playing' && !isEndless && (
+              <button
+                type="button"
+                onClick={triggerClear}
+                className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded font-bold text-xs"
+              >
+                ⚡ 今のステージを強制クリア
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </main>
   );
