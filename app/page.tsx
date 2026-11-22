@@ -107,38 +107,41 @@ const STAGES: StageConfig[] = [
   },
 ];
 
-// 5方向（星型の頂点ベクトル）
-const STAR_VECTORS = [
-  { tx: '0px', ty: '-56px' },
-  { tx: '53px', ty: '-18px' },
-  { tx: '33px', ty: '45px' },
-  { tx: '-33px', ty: '45px' },
-  { tx: '-53px', ty: '-18px' },
+// 10粒の種が「パァーン！」と外周＋星型5方向へ勢いよく弾け飛ぶベクトル
+const BURST_SEEDS = [
+  // 外側5方向（大きく飛び散る種）
+  { tx: '0px', ty: '-72px', size: 'w-4 h-5' },
+  { tx: '68px', ty: '-22px', size: 'w-4 h-5' },
+  { tx: '42px', ty: '58px', size: 'w-4 h-5' },
+  { tx: '-42px', ty: '58px', size: 'w-4 h-5' },
+  { tx: '-68px', ty: '-22px', size: 'w-4 h-5' },
+  // 内側5方向（ずらした角度で飛び散る小粒の種）
+  { tx: '30px', ty: '-44px', size: 'w-3 h-3.5' },
+  { tx: '48px', ty: '24px', size: 'w-3 h-3.5' },
+  { tx: '0px', ty: '52px', size: 'w-3 h-3.5' },
+  { tx: '-48px', ty: '24px', size: 'w-3 h-3.5' },
+  { tx: '-30px', ty: '-44px', size: 'w-3 h-3.5' },
 ];
 
-// 輪切りオクラの断面SVGコンポーネント（五角形のフチ・5つの種部屋・白い種）
+// 輪切りオクラの断面SVGアイコン
 function OkuraSliceIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      {/* 外側の五角形（濃い緑の皮） */}
       <path
         d="M50 5 C62 5, 92 27, 95 39 C98 51, 86 86, 76 93 C66 100, 34 100, 24 93 C14 86, 2 51, 5 39 C8 27, 38 5, 50 5 Z"
         fill="#16a34a"
         stroke="#14532d"
         strokeWidth="4"
       />
-      {/* 内側の果肉（明るい黄緑） */}
       <path
         d="M50 13 C60 13, 84 31, 87 41 C89 51, 79 80, 71 86 C63 91, 37 91, 29 86 C21 80, 11 51, 13 41 C16 31, 40 13, 50 13 Z"
         fill="#bef264"
       />
-      {/* 5つの種部屋（少し濃い緑のポケット） */}
       <ellipse cx="50" cy="31" rx="8" ry="11" fill="#4d7c0f" />
       <ellipse cx="69" cy="45" rx="8" ry="11" transform="rotate(72 69 45)" fill="#4d7c0f" />
       <ellipse cx="62" cy="68" rx="8" ry="11" transform="rotate(144 62 68)" fill="#4d7c0f" />
       <ellipse cx="38" cy="68" rx="8" ry="11" transform="rotate(216 38 68)" fill="#4d7c0f" />
       <ellipse cx="31" cy="45" rx="8" ry="11" transform="rotate(288 31 45)" fill="#4d7c0f" />
-      {/* 部屋の中の白い丸い種（各部屋2粒ずつ） */}
       <circle cx="50" cy="27" r="3.8" fill="#fefce8" />
       <circle cx="50" cy="35" r="3.4" fill="#fefce8" />
       <circle cx="72" cy="43" r="3.8" fill="#fefce8" />
@@ -149,11 +152,20 @@ function OkuraSliceIcon({ className = 'w-7 h-7' }: { className?: string }) {
       <circle cx="41" cy="65" r="3.4" fill="#fefce8" />
       <circle cx="28" cy="43" r="3.8" fill="#fefce8" />
       <circle cx="35" cy="46" r="3.4" fill="#fefce8" />
-      {/* 中心の芯 */}
       <circle cx="50" cy="52" r="5" fill="#ecfccb" />
     </svg>
   );
 }
+
+const createInitialHoles = (): HoleState[] =>
+  Array.from({ length: 9 }, (_, i) => ({
+    id: i,
+    isUp: false,
+    isHit: false,
+    charType: 'okura',
+    burstKey: 0,
+    burstType: 'star',
+  }));
 
 export default function OkuraTatakiPage() {
   const [stageIdx, setStageIdx] = useState<number>(0);
@@ -167,42 +179,44 @@ export default function OkuraTatakiPage() {
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [warnMessage, setWarnMessage] = useState<string | null>(null);
 
-  const [holes, setHoles] = useState<HoleState[]>(
-    Array.from({ length: 9 }, (_, i) => ({
-      id: i,
-      isUp: false,
-      isHit: false,
-      charType: 'okura',
-      burstKey: 0,
-      burstType: 'star',
-    }))
-  );
+  const [holes, setHoles] = useState<HoleState[]>(createInitialHoles);
+
+  // タップ瞬間にズレなく最新状態を参照するためのRef（Reactバッチ遅延バグ対策）
+  const holesRef = useRef<HoleState[]>(holes);
+  holesRef.current = holes;
+
+  const comboRef = useRef<number>(combo);
+  comboRef.current = combo;
+
+  const stageScoreRef = useRef<number>(stageScore);
+  stageScoreRef.current = stageScore;
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const popTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentStage = STAGES[stageIdx];
 
-  // 効果音再生
+  // 「パァーン！」と弾ける破裂音ミックス効果音（Web Audio API）
   const playSound = (type: 'hit' | 'king' | 'bad' | 'clear', currentCombo = 0) => {
     try {
       const AudioCtx =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const now = ctx.currentTime;
 
       if (type === 'bad') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(140, ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(75, ctx.currentTime + 0.25);
-        gain.gain.setValueAtTime(0.35, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(75, now + 0.25);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
         osc.connect(gain);
         gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
         return;
       }
 
@@ -212,30 +226,57 @@ export default function OkuraTatakiPage() {
           const o = ctx.createOscillator();
           const g = ctx.createGain();
           o.type = 'triangle';
-          o.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.09);
-          g.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.09);
-          g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.09 + 0.2);
+          o.frequency.setValueAtTime(freq, now + idx * 0.09);
+          g.gain.setValueAtTime(0.25, now + idx * 0.09);
+          g.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.09 + 0.2);
           o.connect(g);
           g.connect(ctx.destination);
-          o.start(ctx.currentTime + idx * 0.09);
-          o.stop(ctx.currentTime + idx * 0.09 + 0.2);
+          o.start(now + idx * 0.09);
+          o.stop(now + idx * 0.09 + 0.2);
         });
         return;
       }
 
-      const baseFreq = type === 'king' ? 520 : Math.min(280 + currentCombo * 26, 880);
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.65, ctx.currentTime + 0.09);
-      osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.16);
+      // 1. 「パァーン！」の破裂ノイズ（種が弾ける音）
+      const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.04));
+      }
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
 
-      gain.gain.setValueAtTime(0.35, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.16);
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1400, now);
+      filter.Q.setValueAtTime(1.2, now);
+
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.45, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.14);
+
+      whiteNoise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      whiteNoise.start(now);
+
+      // 2. コンボ連動の爽快ヒットトーン
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const baseFreq = type === 'king' ? 540 : Math.min(310 + currentCombo * 28, 920);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.75, now + 0.08);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.16);
+
+      gain.gain.setValueAtTime(0.32, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.16);
+      osc.start(now);
+      osc.stop(now + 0.16);
     } catch {
       // 音声ブロック環境は無視
     }
@@ -250,20 +291,15 @@ export default function OkuraTatakiPage() {
       setMaxCombo(0);
     }
     setStageScore(0);
+    stageScoreRef.current = 0;
     setCombo(0);
+    comboRef.current = 0;
     setTimeLeft(cfg.timeLimit);
     setWarnMessage(null);
+    const freshHoles = createInitialHoles();
+    setHoles(freshHoles);
+    holesRef.current = freshHoles;
     setGameState('playing');
-    setHoles(
-      Array.from({ length: 9 }, (_, i) => ({
-        id: i,
-        isUp: false,
-        isHit: false,
-        charType: 'okura',
-        burstKey: 0,
-        burstType: 'star',
-      }))
-    );
   };
 
   // カウントダウン＆クリア判定
@@ -274,19 +310,16 @@ export default function OkuraTatakiPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           setHoles((h) => h.map((hole) => ({ ...hole, isUp: false, isHit: false })));
-          setStageScore((currentStageScore) => {
-            if (currentStageScore >= currentStage.targetScore) {
-              playSound('clear');
-              if (stageIdx + 1 < STAGES.length) {
-                setGameState('stage_clear');
-              } else {
-                setGameState('all_clear');
-              }
+          if (stageScoreRef.current >= currentStage.targetScore) {
+            playSound('clear');
+            if (stageIdx + 1 < STAGES.length) {
+              setGameState('stage_clear');
             } else {
-              setGameState('game_over');
+              setGameState('all_clear');
             }
-            return currentStageScore;
-          });
+          } else {
+            setGameState('game_over');
+          }
           return 0;
         }
         return prev - 1;
@@ -330,6 +363,7 @@ export default function OkuraTatakiPage() {
             if (idx === randomIdx) {
               if (hole.isUp && !hole.isHit && hole.charType !== 'caterpillar') {
                 setCombo(0);
+                comboRef.current = 0;
               }
               return { ...hole, isUp: false, isHit: false };
             }
@@ -351,53 +385,73 @@ export default function OkuraTatakiPage() {
     };
   }, [gameState, currentStage]);
 
-  // タップで叩く処理
+  // タップで叩く処理（同期Ref参照により100%確実にコンボ＆スコア加算）
   const handleWhack = (id: number) => {
     if (gameState !== 'playing') return;
 
-    let hitChar: CharacterType | null = null;
+    const targetHole = holesRef.current.find((h) => h.id === id);
 
-    setHoles((prev) =>
-      prev.map((hole) => {
-        if (hole.id === id && hole.isUp && !hole.isHit) {
-          hitChar = hole.charType;
-          return {
-            ...hole,
-            isHit: true,
-            burstKey: hole.burstKey + 1,
-            burstType: hole.charType === 'caterpillar' ? 'warn' : 'star',
-          };
-        }
-        return hole;
-      })
-    );
+    // すでに叩かれた後の連打は無視（空振りペナルティにしない）
+    if (targetHole && targetHole.isUp && targetHole.isHit) {
+      return;
+    }
 
-    if (hitChar === 'caterpillar') {
-      setCombo(0);
-      setStageScore((s) => Math.max(0, s - 30));
-      setTotalScore((s) => Math.max(0, s - 30));
-      playSound('bad');
-      setWarnMessage('🐛 イモムシは叩いちゃダメ！ -30点');
-      setTimeout(() => setWarnMessage(null), 900);
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 180);
-    } else if (hitChar === 'okura' || hitChar === 'king_okura') {
-      const nextCombo = combo + 1;
-      setCombo(nextCombo);
-      setMaxCombo((m) => Math.max(m, nextCombo));
+    if (targetHole && targetHole.isUp && !targetHole.isHit) {
+      const hitChar = targetHole.charType;
 
-      const isFever = nextCombo >= 10;
-      const basePoint = hitChar === 'king_okura' ? 35 : 15;
-      const gained = (isFever ? basePoint * 2 : basePoint) + Math.min(nextCombo * 2, 30);
+      // 穴の状態を即更新＆種バースト発火
+      setHoles((prev) =>
+        prev.map((hole) =>
+          hole.id === id
+            ? {
+                ...hole,
+                isHit: true,
+                burstKey: Date.now() + Math.random(),
+                burstType: hitChar === 'caterpillar' ? 'warn' : 'star',
+              }
+            : hole
+        )
+      );
 
-      setStageScore((s) => s + gained);
-      setTotalScore((s) => s + gained);
+      if (hitChar === 'caterpillar') {
+        setCombo(0);
+        comboRef.current = 0;
+        setStageScore((s) => {
+          const next = Math.max(0, s - 30);
+          stageScoreRef.current = next;
+          return next;
+        });
+        setTotalScore((s) => Math.max(0, s - 30));
+        playSound('bad');
+        setWarnMessage('🐛 イモムシは叩いちゃダメ！ -30点');
+        setTimeout(() => setWarnMessage(null), 900);
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 180);
+      } else {
+        const nextCombo = comboRef.current + 1;
+        comboRef.current = nextCombo;
+        setCombo(nextCombo);
+        setMaxCombo((m) => Math.max(m, nextCombo));
 
-      playSound(hitChar === 'king_okura' ? 'king' : 'hit', nextCombo);
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 110);
+        const isFever = nextCombo >= 10;
+        const basePoint = hitChar === 'king_okura' ? 35 : 15;
+        const gained = (isFever ? basePoint * 2 : basePoint) + Math.min(nextCombo * 2, 30);
+
+        setStageScore((s) => {
+          const next = s + gained;
+          stageScoreRef.current = next;
+          return next;
+        });
+        setTotalScore((s) => s + gained);
+
+        playSound(hitChar === 'king_okura' ? 'king' : 'hit', nextCombo);
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 110);
+      }
     } else {
+      // 本当に何も出ていない穴をタップした時だけ空振りリセット
       setCombo(0);
+      comboRef.current = 0;
     }
   };
 
@@ -408,7 +462,7 @@ export default function OkuraTatakiPage() {
       gameState === 'all_clear'
         ? '全5ステージ完全制覇＆神秘の種ゲット！'
         : `Stage ${currentStage.stage}まで到達！`;
-    const text = `⭐【オクラたたき】で遊んだよ！\n記録：${totalScore}点（${stageText} / 最大${maxCombo}コンボ）\nオクラを叩いて種を星型に弾き飛ばそう！👇\n${shareUrl}`;
+    const text = `⭐【オクラたたき】で遊んだよ！\n記録：${totalScore}点（${stageText} / 最大${maxCombo}コンボ）\nオクラを叩いて種をパァーンと弾き飛ばそう！👇\n${shareUrl}`;
     const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
     window.open(lineUrl, '_blank', 'noopener,noreferrer');
   };
@@ -418,21 +472,35 @@ export default function OkuraTatakiPage() {
 
   return (
     <main
-      className={`min-h-screen transition-colors duration-300 flex flex-col items-center justify-center p-3 select-none ${
+      className={`min-h-screen transition-colors duration-300 flex flex-col items-center justify-center p-3 select-none overflow-hidden ${
         isFever ? 'bg-amber-200' : 'bg-amber-50'
       }`}
     >
       <style>{`
-        @keyframes seed-star-burst {
+        @keyframes seed-pop-explode {
           0% {
-            transform: translate(-50%, -50%) scale(1.2) rotate(0deg);
+            transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
             opacity: 1;
           }
-          70% {
+          20% {
+            transform: translate(calc(-50% + var(--tx) * 0.45), calc(-50% + var(--ty) * 0.45)) scale(1.35) rotate(90deg);
+            opacity: 1;
+          }
+          75% {
             opacity: 1;
           }
           100% {
-            transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.4) rotate(180deg);
+            transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.3) rotate(240deg);
+            opacity: 0;
+          }
+        }
+        @keyframes shockwave-ring {
+          0% {
+            transform: translate(-50%, -50%) scale(0.2);
+            opacity: 0.95;
+          }
+          100% {
+            transform: translate(-50%, -50%) scale(2.3);
             opacity: 0;
           }
         }
@@ -443,12 +511,15 @@ export default function OkuraTatakiPage() {
           75% { transform: translate(-3px, -2px) rotate(-0.4deg); }
         }
         @keyframes pop-slice {
-          0% { transform: translate(-50%, -50%) scale(0.5) rotate(-25deg); opacity: 1; }
-          60% { transform: translate(-50%, -85%) scale(1.25) rotate(15deg); opacity: 1; }
-          100% { transform: translate(-50%, -115%) scale(1.0) rotate(30deg); opacity: 0; }
+          0% { transform: translate(-50%, -50%) scale(0.4) rotate(-25deg); opacity: 1; }
+          45% { transform: translate(-50%, -85%) scale(1.35) rotate(15deg); opacity: 1; }
+          100% { transform: translate(-50%, -120%) scale(0.95) rotate(35deg); opacity: 0; }
         }
-        .animate-seed-burst {
-          animation: seed-star-burst 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .animate-seed-explode {
+          animation: seed-pop-explode 0.46s cubic-bezier(0.12, 0.95, 0.25, 1) forwards;
+        }
+        .animate-shockwave {
+          animation: shockwave-ring 0.32s ease-out forwards;
         }
         .animate-board-shake {
           animation: board-shake 0.12s ease-in-out;
@@ -476,7 +547,7 @@ export default function OkuraTatakiPage() {
             isFever ? 'border-yellow-400 ring-4 ring-yellow-300/70' : 'border-green-600'
           }`}
         >
-          {/* ヘッダー（輪切りオクラ断面アイコン付きタイトル） */}
+          {/* ヘッダー */}
           <div className="flex items-center justify-between mb-1">
             <h1 className="flex items-center gap-2 text-2xl font-extrabold text-green-700">
               <OkuraSliceIcon className="w-8 h-8 shrink-0 drop-shadow-sm" />
@@ -511,12 +582,12 @@ export default function OkuraTatakiPage() {
             </div>
           </div>
 
-          {/* コンボ・残り時間・警告メッセージ */}
+          {/* コンボ・残り時間 */}
           <div className="grid grid-cols-2 gap-2 bg-green-50 rounded-xl px-3 py-2 mb-4 border border-green-200">
             <div className="text-center border-r border-green-200">
               <span className="block text-[10px] font-bold text-orange-700">コンボ</span>
               <span
-                className={`text-lg font-black inline-block ${
+                className={`text-lg font-black inline-block transition-transform ${
                   combo >= 5 ? 'text-orange-600 scale-110' : 'text-gray-700'
                 }`}
               >
@@ -566,7 +637,6 @@ export default function OkuraTatakiPage() {
                     } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
                   >
                     {hole.charType === 'caterpillar' ? (
-                      /* お邪魔キャラ：イモムシくん */
                       <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
                         <circle cx="50" cy="85" r="16" fill="#a3e635" stroke="#4d7c0f" strokeWidth="3" />
                         <circle cx="50" cy="65" r="18" fill="#bef264" stroke="#4d7c0f" strokeWidth="3" />
@@ -585,7 +655,6 @@ export default function OkuraTatakiPage() {
                         )}
                       </svg>
                     ) : (
-                      /* 髭オクラ（通常 or 金のボスオクラ） */
                       <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
                         {hole.charType === 'king_okura' && (
                           <path
@@ -638,25 +707,27 @@ export default function OkuraTatakiPage() {
                   </div>
                 </button>
 
-                {/* ヒット時の輪切りオクラ断面ポップ ＆ 5方向種バースト演出 */}
+                {/* ヒット時の「パァーン！」衝撃波 ＆ 輪切り断面 ＆ 10粒種バースト */}
                 {hole.burstKey > 0 && (
-                  <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-20">
+                  <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
                     {hole.burstType === 'warn' ? (
-                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl animate-pop-slice">
+                      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl animate-pop-slice">
                         💥
                       </div>
                     ) : (
                       <>
+                        {/* パァーン！と広がる光の衝撃波リング */}
+                        <div className="animate-shockwave absolute left-1/2 top-1/2 w-14 h-14 rounded-full border-4 border-yellow-300 bg-white/40" />
                         {/* 中心に輪切りオクラ断面が弾け出る */}
                         <div className="absolute left-1/2 top-1/2 animate-pop-slice">
-                          <OkuraSliceIcon className="w-10 h-10 drop-shadow" />
+                          <OkuraSliceIcon className="w-11 h-11 drop-shadow-md" />
                         </div>
-                        {/* 5つの種部屋から種が星型に弾け飛ぶ */}
-                        {STAR_VECTORS.map((vec, i) => (
+                        {/* 10粒の白い種が四方八方へパァーン！と弾け飛ぶ */}
+                        {BURST_SEEDS.map((seed, i) => (
                           <span
                             key={i}
-                            style={{ '--tx': vec.tx, '--ty': vec.ty } as React.CSSProperties}
-                            className="animate-seed-burst absolute left-1/2 top-1/2 w-3.5 h-4.5 rounded-full bg-lime-100 border-2 border-green-600 shadow-sm"
+                            style={{ '--tx': seed.tx, '--ty': seed.ty } as React.CSSProperties}
+                            className={`animate-seed-explode absolute left-1/2 top-1/2 ${seed.size} rounded-full bg-amber-50 border-2 border-green-600 shadow-md`}
                           />
                         ))}
                       </>
