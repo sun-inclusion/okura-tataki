@@ -170,6 +170,17 @@ const BURST_VECTORS = [
   { tx: '-32px', ty: '-46px', size: 'w-3 h-3.5' },
 ];
 
+// 紙吹雪パーティクル配置データ（エピローグ祝福演出用）
+const CONFETTI_ITEMS = [
+  { left: '8%', delay: '0s', duration: '2.6s', icon: '✨' },
+  { left: '20%', delay: '0.4s', duration: '3.1s', icon: '⭐' },
+  { left: '33%', delay: '0.9s', duration: '2.8s', icon: '🍅' },
+  { left: '48%', delay: '0.2s', duration: '3.3s', icon: '🎊' },
+  { left: '62%', delay: '0.7s', duration: '2.7s', icon: '🌶️' },
+  { left: '76%', delay: '0.3s', duration: '3.0s', icon: '🍉' },
+  { left: '89%', delay: '0.8s', duration: '2.5s', icon: '👑' },
+];
+
 // 輪切りオクラ断面SVG
 function OkuraSliceIcon({ className = 'w-7 h-7' }: { className?: string }) {
   return (
@@ -225,7 +236,6 @@ function CharacterIllustration({ charType, isHit }: { charType: CharType; isHit:
       return (
         <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
           <ellipse cx="50" cy="68" rx="34" ry="30" fill={isHit ? '#fca5a5' : '#ef4444'} stroke="#991b1b" strokeWidth="3" />
-          {/* ヘタ */}
           <path d="M50 42 L35 30 L45 43 L28 45 L44 49 L38 60 L50 51 L62 60 L56 49 L72 45 L55 43 L65 30 Z" fill="#16a34a" stroke="#14532d" strokeWidth="1.5" />
           {isHit ? (
             <text x="50" y="74" textAnchor="middle" fontSize="20" fontWeight="bold" fill="#7f1d1d">＞＜</text>
@@ -259,7 +269,6 @@ function CharacterIllustration({ charType, isHit }: { charType: CharType; isHit:
       return (
         <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
           <circle cx="50" cy="65" r="35" fill={isHit ? '#f87171' : '#22c55e'} stroke="#14532d" strokeWidth="3.5" />
-          {/* 縞模様 */}
           <path d="M36 33 Q28 65 36 97 M50 30 L50 100 M64 33 Q72 65 64 97" fill="none" stroke="#14532d" strokeWidth="4" />
           {isHit ? (
             <text x="50" y="72" textAnchor="middle" fontSize="22" fontWeight="bold" fill="#fef08a">💥</text>
@@ -275,7 +284,6 @@ function CharacterIllustration({ charType, isHit }: { charType: CharType; isHit:
     case 'king':
       return (
         <svg viewBox="0 0 100 110" className="w-20 h-22 pointer-events-none">
-          {/* 王冠 */}
           <path d="M26 30 L34 12 L50 24 L66 12 L74 30 Z" fill="#facc15" stroke="#b45309" strokeWidth="3" />
           <circle cx="50" cy="68" r="33" fill={isHit ? '#fef08a' : '#eab308'} stroke="#a16207" strokeWidth="3.5" />
           <path d="M32 54 L46 58 M68 54 L54 58" stroke="#1f2937" strokeWidth="4" strokeLinecap="round" />
@@ -343,7 +351,7 @@ function CharacterIllustration({ charType, isHit }: { charType: CharType; isHit:
   }
 }
 
-// 野菜ごとの「弾け飛びエフェクト」コンポーネント
+// 野菜ごとの弾け飛びエフェクト
 function BurstEffect({ burstVeggie }: { burstVeggie: VeggieKey | 'warn' }) {
   if (burstVeggie === 'warn') {
     return (
@@ -364,13 +372,13 @@ function BurstEffect({ burstVeggie }: { burstVeggie: VeggieKey | 'warn' }) {
         {burstVeggie === 'king' && <span className="text-3xl">🌈</span>}
       </div>
       {BURST_VECTORS.map((vec, i) => {
-        let particleClass = 'rounded-full bg-amber-50 border-2 border-green-600'; // オクラの白い種
+        let particleClass = 'rounded-full bg-amber-50 border-2 border-green-600';
         if (burstVeggie === 'tomato') {
-          particleClass = i % 2 === 0 ? 'rounded-full bg-red-500 border border-red-700' : 'rounded-full bg-yellow-300'; // 赤果汁＆黄種
+          particleClass = i % 2 === 0 ? 'rounded-full bg-red-500 border border-red-700' : 'rounded-full bg-yellow-300';
         } else if (burstVeggie === 'chili') {
-          particleClass = i % 2 === 0 ? 'rotate-45 bg-orange-500 border border-red-600' : 'rounded-full bg-yellow-300'; // 炎の火花
+          particleClass = i % 2 === 0 ? 'rotate-45 bg-orange-500 border border-red-600' : 'rounded-full bg-yellow-300';
         } else if (burstVeggie === 'watermelon') {
-          particleClass = 'rounded-full bg-gray-900 border border-gray-600'; // スイカの黒い種
+          particleClass = 'rounded-full bg-gray-900 border border-gray-600';
         } else if (burstVeggie === 'king') {
           const rainbow = ['bg-red-400', 'bg-yellow-300', 'bg-green-400', 'bg-sky-400', 'bg-purple-400'];
           particleClass = `rounded-full ${rainbow[i % rainbow.length]} border border-white`;
@@ -384,6 +392,115 @@ function BurstEffect({ burstVeggie }: { burstVeggie: VeggieKey | 'warn' }) {
         );
       })}
     </>
+  );
+}
+
+// 🎬 プロローグアニメーションステージ（種降臨 ➔ 新芽発芽）
+function PrologueAnimationStage() {
+  return (
+    <div className="relative bg-gradient-to-b from-sky-100 via-amber-50 to-amber-200/80 border-2 border-amber-300 rounded-2xl p-4 overflow-hidden">
+      {/* キラキラ光る神秘の種が舞い降りる演出 */}
+      <div className="relative h-20 flex flex-col items-center justify-end">
+        <div className="animate-seed-descend absolute top-0 flex flex-col items-center">
+          <span className="text-2xl drop-shadow">✨</span>
+          <span className="w-3.5 h-4.5 rounded-full bg-yellow-200 border-2 border-amber-500 shadow-md -mt-1" />
+        </div>
+
+        {/* 荒れ地から新芽がピョコッと顔を出す */}
+        <div className="flex items-end gap-5 z-10 pb-1">
+          <span className="text-lg opacity-70">🪨</span>
+          <span className="text-lg opacity-70">🏜️</span>
+          <div className="animate-sprout-pop flex flex-col items-center">
+            <span className="text-3xl">🌱</span>
+          </div>
+          <span className="text-lg opacity-70">🏜️</span>
+          <span className="text-lg opacity-70">🪨</span>
+        </div>
+
+        {/* 大地のライン */}
+        <div className="w-full h-2.5 bg-amber-800 rounded-full shadow-inner" />
+      </div>
+
+      {/* ストーリーテキスト（順次フェードイン） */}
+      <div className="mt-3 space-y-1 text-center">
+        <p className="animate-story-line-1 text-[11px] font-black text-amber-800">
+          📖 プロローグ 〜ベジタブル王国の再生〜
+        </p>
+        <p className="animate-story-line-2 text-xs font-bold text-gray-700 leading-relaxed">
+          干ばつの呪いで眠りについた野菜たちを叩き起こせ！
+        </p>
+        <p className="animate-story-line-3 text-xs font-bold text-green-800 leading-relaxed">
+          4つの『神秘の種』を集め、天空の野菜の王様へ届けよう！
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// 🎬 エピローグアニメーションステージ（4種合体 ➔ 虹色の神秘の種 ＆ 王様ジャンプ ＆ 紙吹雪）
+function EpilogueAnimationStage({
+  storyClear,
+  rankLabel,
+  totalScore,
+  maxCombo,
+}: {
+  storyClear: string;
+  rankLabel: string;
+  totalScore: number;
+  maxCombo: number;
+}) {
+  return (
+    <div className="relative bg-gradient-to-b from-yellow-100 via-amber-100 to-orange-100 border-2 border-yellow-500 rounded-2xl p-4 overflow-hidden">
+      {/* 祝福の紙吹雪 */}
+      {CONFETTI_ITEMS.map((item, idx) => (
+        <span
+          key={idx}
+          style={{
+            left: item.left,
+            animationDelay: item.delay,
+            animationDuration: item.duration,
+          }}
+          className="animate-confetti-fall pointer-events-none absolute -top-4 text-base z-10"
+        >
+          {item.icon}
+        </span>
+      ))}
+
+      {/* 4つの種が回転しながら中央へ集まり、虹色の種＆王様が輝くステージ */}
+      <div className="relative h-24 flex items-center justify-center">
+        {/* 周囲を回る4つの種 */}
+        <div className="animate-orbit-seeds absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="absolute -top-1 text-lg">⭐</span>
+          <span className="absolute -bottom-1 text-lg">🔥</span>
+          <span className="absolute left-6 text-lg">☀️</span>
+          <span className="absolute right-6 text-lg">🍉</span>
+        </div>
+
+        {/* 中央の虹色の神秘の種 ＆ 喜ぶ野菜の王様 */}
+        <div className="relative z-20 flex flex-col items-center animate-king-celebrate">
+          <div className="flex items-center gap-1.5">
+            <span className="text-2xl">🌈</span>
+            <span className="text-4xl drop-shadow">👑</span>
+            <span className="text-2xl">🌈</span>
+          </div>
+          <span className="px-2.5 py-0.5 mt-1 bg-white/90 rounded-full text-[10px] font-black text-amber-800 shadow-sm">
+            ✨ 4つの種が合体！虹色の神秘の種が完成！ ✨
+          </span>
+        </div>
+      </div>
+
+      {/* エピローグメッセージ ＆ 称号認定 */}
+      <div className="relative z-20 mt-2 space-y-1.5 text-center">
+        <p className="text-base font-black text-amber-900">🎊 全5章・完全大団円！！</p>
+        <p className="text-xs font-bold text-gray-800 leading-relaxed">{storyClear}</p>
+        <div className="bg-white/85 rounded-xl p-2 border border-amber-300">
+          <p className="text-sm font-black text-orange-700">{rankLabel}</p>
+          <p className="text-xs font-bold text-gray-600 mt-0.5">
+            最終スコア：{totalScore}点（最大{maxCombo}連鎖）
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -636,7 +753,6 @@ export default function OkuraTatakiPage() {
         if (rand < currentStage.obstacleRate) {
           charType = currentChapter.obstacle;
         } else if (currentChapter.veggie === 'king' && rand < 0.65) {
-          // 最終章はこれまでの野菜も総登場！
           charType = VEGGIES[Math.floor(Math.random() * 4)];
         } else if (rand < currentStage.obstacleRate + currentStage.kingRate) {
           charType = 'king';
@@ -771,7 +887,7 @@ export default function OkuraTatakiPage() {
     }
   };
 
-  // ランク判定（クリア・リザルト用）
+  // ランク判定
   const getRankLabel = (score: number) => {
     if (score >= 8000) return '👑 SSSランク：伝説の野菜神';
     if (score >= 5000) return '🏆 SSランク：黄金の収穫王';
@@ -825,10 +941,50 @@ export default function OkuraTatakiPage() {
           45% { transform: translate(-50%, -85%) scale(1.35) rotate(15deg); opacity: 1; }
           100% { transform: translate(-50%, -120%) scale(0.95) rotate(35deg); opacity: 0; }
         }
+        /* プロローグ用：種が舞い降りて新芽が顔を出すループ */
+        @keyframes seed-descend {
+          0% { transform: translateY(-6px) scale(0.8); opacity: 0; }
+          25% { opacity: 1; }
+          65% { transform: translateY(34px) scale(1.1); opacity: 1; }
+          85%, 100% { transform: translateY(42px) scale(0.2); opacity: 0; }
+        }
+        @keyframes sprout-pop {
+          0%, 55% { transform: scale(0) translateY(8px); opacity: 0; }
+          75% { transform: scale(1.25) translateY(-2px); opacity: 1; }
+          88%, 100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        @keyframes fade-slide-up {
+          0% { opacity: 0; transform: translateY(8px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        /* エピローグ用：4種回転合体・王様ジャンプ・紙吹雪 */
+        @keyframes orbit-spin {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(0.82); }
+          100% { transform: rotate(360deg) scale(1); }
+        }
+        @keyframes king-celebrate {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-7px) scale(1.06); }
+        }
+        @keyframes confetti-fall {
+          0% { transform: translateY(-10px) rotate(0deg); opacity: 0; }
+          15% { opacity: 1; }
+          85% { opacity: 1; }
+          100% { transform: translateY(230px) rotate(360deg); opacity: 0; }
+        }
         .animate-seed-explode { animation: seed-pop-explode 0.46s cubic-bezier(0.12, 0.95, 0.25, 1) forwards; }
         .animate-shockwave { animation: shockwave-ring 0.32s ease-out forwards; }
         .animate-board-shake { animation: board-shake 0.12s ease-in-out; }
         .animate-pop-slice { animation: pop-slice 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-seed-descend { animation: seed-descend 2.8s ease-in-out infinite; }
+        .animate-sprout-pop { animation: sprout-pop 2.8s ease-out infinite; }
+        .animate-story-line-1 { animation: fade-slide-up 0.5s ease-out 0.1s both; }
+        .animate-story-line-2 { animation: fade-slide-up 0.5s ease-out 0.35s both; }
+        .animate-story-line-3 { animation: fade-slide-up 0.5s ease-out 0.6s both; }
+        .animate-orbit-seeds { animation: orbit-spin 5s linear infinite; }
+        .animate-king-celebrate { animation: king-celebrate 1.4s ease-in-out infinite; }
+        .animate-confetti-fall { animation: confetti-fall linear infinite; }
       `}</style>
 
       <div
@@ -865,17 +1021,12 @@ export default function OkuraTatakiPage() {
             )}
           </div>
 
-          {/* タイトル画面 */}
+          {/* タイトル画面（プロローグアニメーション付き） */}
           {gameState === 'title' && (
-            <div className="space-y-4 py-2 text-center">
-              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4">
-                <p className="text-xs font-black text-amber-800 mb-1">📖 プロローグ</p>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  干ばつの呪いで眠った野菜たちを叩き起こし、4つの「神秘の種」を集めて天空の『野菜の王様』へ黄金の収穫祭を取り戻そう！
-                </p>
-              </div>
+            <div className="space-y-3.5 py-1 text-center">
+              <PrologueAnimationStage />
 
-              <div className="grid grid-cols-5 gap-1.5 text-center bg-green-50 p-2.5 rounded-xl border border-green-200">
+              <div className="grid grid-cols-5 gap-1.5 text-center bg-green-50 p-2 rounded-xl border border-green-200">
                 <div><span className="text-xl block">⭐</span><span className="text-[10px] font-bold">1.オクラ</span></div>
                 <div><span className="text-xl block">🍅</span><span className="text-[10px] font-bold">2.トマト</span></div>
                 <div><span className="text-xl block">🌶️</span><span className="text-[10px] font-bold">3.唐辛子</span></div>
@@ -886,7 +1037,7 @@ export default function OkuraTatakiPage() {
               <button
                 type="button"
                 onClick={() => openChapterIntro(0, true)}
-                className="w-full py-4 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-black text-lg rounded-xl shadow-lg transition-colors"
+                className="w-full py-3.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-black text-lg rounded-xl shadow-lg transition-colors"
               >
                 冒険をスタートする！ ➔
               </button>
@@ -894,7 +1045,7 @@ export default function OkuraTatakiPage() {
               <button
                 type="button"
                 onClick={handleLineShare}
-                className="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
               >
                 <span>💬</span>
                 <span>LINEで友達にシェアする</span>
@@ -911,14 +1062,14 @@ export default function OkuraTatakiPage() {
               <h2 className="text-xl font-black text-gray-800">{currentChapter.subtitle}</h2>
 
               <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-left space-y-2">
-                <p className="text-xs font-bold text-gray-800 leading-relaxed">
+                <p className="animate-story-line-1 text-xs font-bold text-gray-800 leading-relaxed">
                   「{currentChapter.storyIntro}」
                 </p>
-                <div className="pt-2 border-t border-amber-200 flex items-center justify-between text-xs">
+                <div className="animate-story-line-2 pt-2 border-t border-amber-200 flex items-center justify-between text-xs">
                   <span className="font-bold text-green-700">🎯 ターゲット：{currentChapter.veggieName}</span>
                   <span className="font-bold text-red-600">⚠️ 注意：{currentChapter.obstacleName}</span>
                 </div>
-                <p className="text-[11px] text-red-600 font-bold">
+                <p className="animate-story-line-3 text-[11px] text-red-600 font-bold">
                   ※ {currentChapter.obstacleName}：{currentChapter.obstacleDesc}
                 </p>
               </div>
@@ -1006,36 +1157,38 @@ export default function OkuraTatakiPage() {
                 )}
               </div>
 
-              {/* 3x3 穴グリッド */}
-              <div
-                className={`grid grid-cols-3 gap-3 bg-amber-800 p-3.5 rounded-2xl shadow-inner mb-4 transition-opacity ${
-                  isStunned ? 'opacity-60 ring-4 ring-yellow-400' : ''
-                }`}
-              >
-                {holes.map((hole) => (
-                  <div key={hole.id} className="relative h-24 w-full">
-                    <button
-                      type="button"
-                      onPointerDown={() => handleWhack(hole.id)}
-                      className="relative h-full w-full bg-amber-950 rounded-full overflow-hidden border-4 border-amber-900 focus:outline-none active:scale-90 transition-transform touch-manipulation"
-                    >
-                      <div
-                        className={`absolute inset-x-0 bottom-0 flex justify-center transition-transform duration-100 ${
-                          hole.isUp ? 'translate-y-1' : 'translate-y-24'
-                        } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
+              {/* 3x3 穴グリッド（全章クリアのエピローグ表示時は畳んで演出に集中） */}
+              {gameState !== 'all_clear' && (
+                <div
+                  className={`grid grid-cols-3 gap-3 bg-amber-800 p-3.5 rounded-2xl shadow-inner mb-4 transition-opacity ${
+                    isStunned ? 'opacity-60 ring-4 ring-yellow-400' : ''
+                  }`}
+                >
+                  {holes.map((hole) => (
+                    <div key={hole.id} className="relative h-24 w-full">
+                      <button
+                        type="button"
+                        onPointerDown={() => handleWhack(hole.id)}
+                        className="relative h-full w-full bg-amber-950 rounded-full overflow-hidden border-4 border-amber-900 focus:outline-none active:scale-90 transition-transform touch-manipulation"
                       >
-                        <CharacterIllustration charType={hole.charType} isHit={hole.isHit} />
-                      </div>
-                    </button>
+                        <div
+                          className={`absolute inset-x-0 bottom-0 flex justify-center transition-transform duration-100 ${
+                            hole.isUp ? 'translate-y-1' : 'translate-y-24'
+                          } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
+                        >
+                          <CharacterIllustration charType={hole.charType} isHit={hole.isHit} />
+                        </div>
+                      </button>
 
-                    {hole.burstKey > 0 && (
-                      <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
-                        <BurstEffect burstVeggie={hole.burstVeggie} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                      {hole.burstKey > 0 && (
+                        <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
+                          <BurstEffect burstVeggie={hole.burstVeggie} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* リザルト・進行ボタン */}
               {gameState !== 'playing' && (
@@ -1050,24 +1203,20 @@ export default function OkuraTatakiPage() {
                   {gameState === 'chapter_clear' && (
                     <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400 rounded-xl p-3.5">
                       <p className="text-base font-black text-amber-900">🎊 {currentChapter.name} 完全制覇！</p>
-                      <p className="text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
-                      <span className="inline-block mt-1.5 px-3 py-0.5 bg-white rounded-full text-xs font-black text-orange-600 shadow-sm">
+                      <p className="animate-story-line-1 text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
+                      <span className="animate-story-line-2 inline-block mt-1.5 px-3 py-0.5 bg-white rounded-full text-xs font-black text-orange-600 shadow-sm">
                         獲得：{currentChapter.seedReward}
                       </span>
                     </div>
                   )}
 
                   {gameState === 'all_clear' && (
-                    <div className="bg-gradient-to-r from-yellow-100 via-amber-100 to-yellow-100 border-2 border-yellow-500 rounded-xl p-3.5">
-                      <p className="text-lg font-black text-amber-900">👑 全5章・完全大団円！！</p>
-                      <p className="text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
-                      <p className="text-sm font-black text-orange-700 mt-1.5">
-                        認定：{getRankLabel(totalScore)}
-                      </p>
-                      <p className="text-xs font-bold text-gray-600">
-                        最終スコア：{totalScore}点（最大{maxCombo}連鎖）
-                      </p>
-                    </div>
+                    <EpilogueAnimationStage
+                      storyClear={currentChapter.storyClear}
+                      rankLabel={getRankLabel(totalScore)}
+                      totalScore={totalScore}
+                      maxCombo={maxCombo}
+                    />
                   )}
 
                   {gameState === 'game_over' && (
@@ -1184,6 +1333,18 @@ export default function OkuraTatakiPage() {
                 className="px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-[11px] font-bold"
               >
                 ♾️無限
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setChapterIdx(4);
+                  setStageIdx(4);
+                  setIsEndless(false);
+                  setGameState('all_clear');
+                }}
+                className="px-2 py-1 bg-amber-600 hover:bg-amber-500 rounded text-[11px] font-bold"
+              >
+                🎊エピローグ
               </button>
             </div>
             {gameState === 'playing' && !isEndless && (
