@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 type VeggieKey = 'okura' | 'tomato' | 'chili' | 'watermelon' | 'king';
 type ObstacleKey = 'caterpillar' | 'ladybug' | 'cactus' | 'crab' | 'fairy';
@@ -170,7 +171,7 @@ const BURST_VECTORS = [
   { tx: '-32px', ty: '-46px', size: 'w-3 h-3.5' },
 ];
 
-// 紙吹雪パーティクル配置データ（エピローグ祝福演出用）
+// 紙吹雪パーティクル
 const CONFETTI_ITEMS = [
   { left: '8%', delay: '0s', duration: '2.6s', icon: '✨' },
   { left: '20%', delay: '0.4s', duration: '3.1s', icon: '⭐' },
@@ -351,7 +352,7 @@ function CharacterIllustration({ charType, isHit }: { charType: CharType; isHit:
   }
 }
 
-// 野菜ごとの弾け飛びエフェクト
+// 弾け飛びエフェクト
 function BurstEffect({ burstVeggie }: { burstVeggie: VeggieKey | 'warn' }) {
   if (burstVeggie === 'warn') {
     return (
@@ -395,18 +396,15 @@ function BurstEffect({ burstVeggie }: { burstVeggie: VeggieKey | 'warn' }) {
   );
 }
 
-// 🎬 プロローグアニメーションステージ（種降臨 ➔ 新芽発芽）
+// プロローグアニメーションステージ
 function PrologueAnimationStage() {
   return (
     <div className="relative bg-gradient-to-b from-sky-100 via-amber-50 to-amber-200/80 border-2 border-amber-300 rounded-2xl p-4 overflow-hidden">
-      {/* キラキラ光る神秘の種が舞い降りる演出 */}
       <div className="relative h-20 flex flex-col items-center justify-end">
         <div className="animate-seed-descend absolute top-0 flex flex-col items-center">
           <span className="text-2xl drop-shadow">✨</span>
           <span className="w-3.5 h-4.5 rounded-full bg-yellow-200 border-2 border-amber-500 shadow-md -mt-1" />
         </div>
-
-        {/* 荒れ地から新芽がピョコッと顔を出す */}
         <div className="flex items-end gap-5 z-10 pb-1">
           <span className="text-lg opacity-70">🪨</span>
           <span className="text-lg opacity-70">🏜️</span>
@@ -416,12 +414,9 @@ function PrologueAnimationStage() {
           <span className="text-lg opacity-70">🏜️</span>
           <span className="text-lg opacity-70">🪨</span>
         </div>
-
-        {/* 大地のライン */}
         <div className="w-full h-2.5 bg-amber-800 rounded-full shadow-inner" />
       </div>
 
-      {/* ストーリーテキスト（順次フェードイン） */}
       <div className="mt-3 space-y-1 text-center">
         <p className="animate-story-line-1 text-[11px] font-black text-amber-800">
           📖 プロローグ 〜ベジタブル王国の再生〜
@@ -437,7 +432,7 @@ function PrologueAnimationStage() {
   );
 }
 
-// 🎬 エピローグアニメーションステージ（4種合体 ➔ 虹色の神秘の種 ＆ 王様ジャンプ ＆ 紙吹雪）
+// エピローグアニメーションステージ
 function EpilogueAnimationStage({
   storyClear,
   rankLabel,
@@ -451,7 +446,6 @@ function EpilogueAnimationStage({
 }) {
   return (
     <div className="relative bg-gradient-to-b from-yellow-100 via-amber-100 to-orange-100 border-2 border-yellow-500 rounded-2xl p-4 overflow-hidden">
-      {/* 祝福の紙吹雪 */}
       {CONFETTI_ITEMS.map((item, idx) => (
         <span
           key={idx}
@@ -466,9 +460,7 @@ function EpilogueAnimationStage({
         </span>
       ))}
 
-      {/* 4つの種が回転しながら中央へ集まり、虹色の種＆王様が輝くステージ */}
       <div className="relative h-24 flex items-center justify-center">
-        {/* 周囲を回る4つの種 */}
         <div className="animate-orbit-seeds absolute inset-0 flex items-center justify-center pointer-events-none">
           <span className="absolute -top-1 text-lg">⭐</span>
           <span className="absolute -bottom-1 text-lg">🔥</span>
@@ -476,7 +468,6 @@ function EpilogueAnimationStage({
           <span className="absolute right-6 text-lg">🍉</span>
         </div>
 
-        {/* 中央の虹色の神秘の種 ＆ 喜ぶ野菜の王様 */}
         <div className="relative z-20 flex flex-col items-center animate-king-celebrate">
           <div className="flex items-center gap-1.5">
             <span className="text-2xl">🌈</span>
@@ -489,7 +480,6 @@ function EpilogueAnimationStage({
         </div>
       </div>
 
-      {/* エピローグメッセージ ＆ 称号認定 */}
       <div className="relative z-20 mt-2 space-y-1.5 text-center">
         <p className="text-base font-black text-amber-900">🎊 全5章・完全大団円！！</p>
         <p className="text-xs font-bold text-gray-800 leading-relaxed">{storyClear}</p>
@@ -517,6 +507,9 @@ const createInitialHoles = (): HoleState[] =>
 const OBSTACLES: ObstacleKey[] = ['caterpillar', 'ladybug', 'cactus', 'crab', 'fairy'];
 const VEGGIES: VeggieKey[] = ['okura', 'tomato', 'chili', 'watermelon', 'king'];
 
+// 🔐 隠し管理者用合言葉（推測されにくい文字列）
+const ADMIN_SECRET_KEY = 'sun777okura';
+
 export default function OkuraTatakiPage() {
   const [chapterIdx, setChapterIdx] = useState<number>(0);
   const [stageIdx, setStageIdx] = useState<number>(0);
@@ -536,6 +529,9 @@ export default function OkuraTatakiPage() {
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [isStunned, setIsStunned] = useState<boolean>(false);
   const [warnMessage, setWarnMessage] = useState<string | null>(null);
+
+  // 合言葉URL（?key=sun777okura）の時だけtrueになる管理者フラグ
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
   const [showDevMenu, setShowDevMenu] = useState<boolean>(false);
 
   const [holes, setHoles] = useState<HoleState[]>(createInitialHoles);
@@ -551,6 +547,16 @@ export default function OkuraTatakiPage() {
 
   const currentChapter = CHAPTERS[chapterIdx];
   const currentStage = currentChapter.stages[stageIdx];
+
+  // クライアント側でURLクエリを安全にチェック（Suspenseビルドエラー回避）
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('key') === ADMIN_SECRET_KEY) {
+        setIsAdminMode(true);
+      }
+    }
+  }, []);
 
   // 効果音再生
   const playSound = (type: 'hit' | 'king' | 'bad' | 'clear', currentCombo = 0) => {
@@ -593,7 +599,6 @@ export default function OkuraTatakiPage() {
         return;
       }
 
-      // 破裂ノイズ（パァーン！）
       const bufferSize = Math.floor(ctx.sampleRate * 0.14);
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
@@ -637,7 +642,6 @@ export default function OkuraTatakiPage() {
     }
   };
 
-  // クリア遷移処理
   const triggerClear = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (popTimerRef.current) clearTimeout(popTimerRef.current);
@@ -653,7 +657,6 @@ export default function OkuraTatakiPage() {
     }
   };
 
-  // 章のイントロを開く
   const openChapterIntro = (targetChapIdx: number, resetTotal = false) => {
     setIsEndless(false);
     setChapterIdx(targetChapIdx);
@@ -665,7 +668,6 @@ export default function OkuraTatakiPage() {
     setGameState('chapter_intro');
   };
 
-  // ステージ開始
   const startStage = (targetChapIdx: number, targetStageIdx: number) => {
     const cfg = CHAPTERS[targetChapIdx].stages[targetStageIdx];
     setIsEndless(false);
@@ -684,7 +686,6 @@ export default function OkuraTatakiPage() {
     setGameState('playing');
   };
 
-  // エンドレスモード開始
   const startEndlessMode = () => {
     setIsEndless(true);
     setEndlessLives(3);
@@ -702,7 +703,6 @@ export default function OkuraTatakiPage() {
     setGameState('playing');
   };
 
-  // カウントダウンタイマー（通常モードのみ）
   useEffect(() => {
     if (gameState !== 'playing' || isEndless) return;
 
@@ -715,7 +715,6 @@ export default function OkuraTatakiPage() {
     };
   }, [gameState, isEndless]);
 
-  // 0秒到達時の判定（通常モード）
   useEffect(() => {
     if (gameState !== 'playing' || isEndless || timeLeft > 0) return;
 
@@ -730,7 +729,6 @@ export default function OkuraTatakiPage() {
     }
   }, [timeLeft, gameState, isEndless]);
 
-  // キャラクターランダム出現ループ
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -797,7 +795,6 @@ export default function OkuraTatakiPage() {
     };
   }, [gameState, isEndless, currentChapter, currentStage]);
 
-  // タップで叩く処理
   const handleWhack = (id: number) => {
     if (gameState !== 'playing' || isStunned) return;
 
@@ -887,7 +884,6 @@ export default function OkuraTatakiPage() {
     }
   };
 
-  // ランク判定
   const getRankLabel = (score: number) => {
     if (score >= 8000) return '👑 SSSランク：伝説の野菜神';
     if (score >= 5000) return '🏆 SSランク：黄金の収穫王';
@@ -896,9 +892,8 @@ export default function OkuraTatakiPage() {
     return '🌱 Bランク：見習い農夫';
   };
 
-  // LINEでシェア
   const handleLineShare = () => {
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const shareUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const statusText = isEndless
       ? `無限収穫祭モードで ${totalScore}点 達成！`
       : gameState === 'all_clear'
@@ -915,7 +910,7 @@ export default function OkuraTatakiPage() {
 
   return (
     <main
-      className={`min-h-screen transition-colors duration-300 flex flex-col items-center justify-center p-3 select-none overflow-hidden ${
+      className={`min-h-screen transition-colors duration-300 flex flex-col items-center justify-between p-3 select-none overflow-x-hidden ${
         isFever ? 'bg-amber-200' : 'bg-amber-50'
       }`}
     >
@@ -941,7 +936,6 @@ export default function OkuraTatakiPage() {
           45% { transform: translate(-50%, -85%) scale(1.35) rotate(15deg); opacity: 1; }
           100% { transform: translate(-50%, -120%) scale(0.95) rotate(35deg); opacity: 0; }
         }
-        /* プロローグ用：種が舞い降りて新芽が顔を出すループ */
         @keyframes seed-descend {
           0% { transform: translateY(-6px) scale(0.8); opacity: 0; }
           25% { opacity: 1; }
@@ -957,7 +951,6 @@ export default function OkuraTatakiPage() {
           0% { opacity: 0; transform: translateY(8px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-        /* エピローグ用：4種回転合体・王様ジャンプ・紙吹雪 */
         @keyframes orbit-spin {
           0% { transform: rotate(0deg) scale(1); }
           50% { transform: rotate(180deg) scale(0.82); }
@@ -987,282 +980,277 @@ export default function OkuraTatakiPage() {
         .animate-confetti-fall { animation: confetti-fall linear infinite; }
       `}</style>
 
-      <div
-        className={`max-w-md w-full rounded-3xl p-2.5 border-4 transition-all duration-500 shadow-2xl ${
-          isEndless ? 'bg-gradient-to-r from-yellow-200 via-amber-200 to-yellow-200 border-yellow-500' : currentStage.farmBgClass
-        } ${isShaking ? 'animate-board-shake' : ''}`}
-      >
-        {/* 上部畑ステータス */}
-        <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-white/90 rounded-2xl text-xs font-bold text-gray-700 shadow-sm">
-          <span>{isEndless ? '♾️ 無限・黄金の収穫祭' : `${currentChapter.name}｜${currentStage.farmLabel}`}</span>
-          <span className="tracking-widest text-sm">{isEndless ? '👑🌈✨' : currentStage.farmIcons.join('')}</span>
-        </div>
-
-        {/* メインカード */}
+      {/* メインゲームエリア */}
+      <div className="w-full flex flex-col items-center my-auto">
         <div
-          className={`bg-white rounded-2xl p-5 border-4 transition-all ${
-            isFever ? 'border-yellow-400 ring-4 ring-yellow-300/70' : 'border-green-600'
-          }`}
+          className={`max-w-md w-full rounded-3xl p-2.5 border-4 transition-all duration-500 shadow-2xl ${
+            isEndless ? 'bg-gradient-to-r from-yellow-200 via-amber-200 to-yellow-200 border-yellow-500' : currentStage.farmBgClass
+          } ${isShaking ? 'animate-board-shake' : ''}`}
         >
-          {/* タイトルヘッダー */}
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="flex items-center gap-2 text-2xl font-extrabold text-green-700">
-              <OkuraSliceIcon className="w-8 h-8 shrink-0 drop-shadow-sm" />
-              <span>オクラたたき</span>
-            </h1>
-            {isFever ? (
-              <span className="px-2.5 py-0.5 text-xs font-black bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full animate-bounce shadow">
-                🔥 FEVER 2倍！
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 text-xs font-bold bg-green-100 text-green-800 rounded-full">
-                {isEndless ? 'エンドレスモード' : currentStage.title}
-              </span>
-            )}
+          {/* 上部畑ステータス */}
+          <div className="flex items-center justify-between px-3 py-1.5 mb-2 bg-white/90 rounded-2xl text-xs font-bold text-gray-700 shadow-sm">
+            <span>{isEndless ? '♾️ 無限・黄金の収穫祭' : `${currentChapter.name}｜${currentStage.farmLabel}`}</span>
+            <span className="tracking-widest text-sm">{isEndless ? '👑🌈✨' : currentStage.farmIcons.join('')}</span>
           </div>
 
-          {/* タイトル画面（プロローグアニメーション付き） */}
-          {gameState === 'title' && (
-            <div className="space-y-3.5 py-1 text-center">
-              <PrologueAnimationStage />
-
-              <div className="grid grid-cols-5 gap-1.5 text-center bg-green-50 p-2 rounded-xl border border-green-200">
-                <div><span className="text-xl block">⭐</span><span className="text-[10px] font-bold">1.オクラ</span></div>
-                <div><span className="text-xl block">🍅</span><span className="text-[10px] font-bold">2.トマト</span></div>
-                <div><span className="text-xl block">🌶️</span><span className="text-[10px] font-bold">3.唐辛子</span></div>
-                <div><span className="text-xl block">🍉</span><span className="text-[10px] font-bold">4.スイカ</span></div>
-                <div><span className="text-xl block">👑</span><span className="text-[10px] font-bold">5.王様</span></div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => openChapterIntro(0, true)}
-                className="w-full py-3.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-black text-lg rounded-xl shadow-lg transition-colors"
-              >
-                冒険をスタートする！ ➔
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLineShare}
-                className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
-              >
-                <span>💬</span>
-                <span>LINEで友達にシェアする</span>
-              </button>
+          {/* メインカード */}
+          <div
+            className={`bg-white rounded-2xl p-5 border-4 transition-all ${
+              isFever ? 'border-yellow-400 ring-4 ring-yellow-300/70' : 'border-green-600'
+            }`}
+          >
+            {/* タイトルヘッダー */}
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="flex items-center gap-2 text-2xl font-extrabold text-green-700">
+                <OkuraSliceIcon className="w-8 h-8 shrink-0 drop-shadow-sm" />
+                <span>オクラたたき</span>
+              </h1>
+              {isFever ? (
+                <span className="px-2.5 py-0.5 text-xs font-black bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-full animate-bounce shadow">
+                  🔥 FEVER 2倍！
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 text-xs font-bold bg-green-100 text-green-800 rounded-full">
+                  {isEndless ? 'エンドレスモード' : currentStage.title}
+                </span>
+              )}
             </div>
-          )}
 
-          {/* 章のイントロ画面 */}
-          {gameState === 'chapter_intro' && (
-            <div className="space-y-4 py-3 text-center">
-              <div className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-black rounded-full">
-                {currentChapter.name}
-              </div>
-              <h2 className="text-xl font-black text-gray-800">{currentChapter.subtitle}</h2>
+            {/* タイトル画面 */}
+            {gameState === 'title' && (
+              <div className="space-y-3.5 py-1 text-center">
+                <PrologueAnimationStage />
 
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-left space-y-2">
-                <p className="animate-story-line-1 text-xs font-bold text-gray-800 leading-relaxed">
-                  「{currentChapter.storyIntro}」
-                </p>
-                <div className="animate-story-line-2 pt-2 border-t border-amber-200 flex items-center justify-between text-xs">
-                  <span className="font-bold text-green-700">🎯 ターゲット：{currentChapter.veggieName}</span>
-                  <span className="font-bold text-red-600">⚠️ 注意：{currentChapter.obstacleName}</span>
+                <div className="grid grid-cols-5 gap-1.5 text-center bg-green-50 p-2 rounded-xl border border-green-200">
+                  <div><span className="text-xl block">⭐</span><span className="text-[10px] font-bold">1.オクラ</span></div>
+                  <div><span className="text-xl block">🍅</span><span className="text-[10px] font-bold">2.トマト</span></div>
+                  <div><span className="text-xl block">🌶️</span><span className="text-[10px] font-bold">3.唐辛子</span></div>
+                  <div><span className="text-xl block">🍉</span><span className="text-[10px] font-bold">4.スイカ</span></div>
+                  <div><span className="text-xl block">👑</span><span className="text-[10px] font-bold">5.王様</span></div>
                 </div>
-                <p className="animate-story-line-3 text-[11px] text-red-600 font-bold">
-                  ※ {currentChapter.obstacleName}：{currentChapter.obstacleDesc}
-                </p>
+
+                <button
+                  type="button"
+                  onClick={() => openChapterIntro(0, true)}
+                  className="w-full py-3.5 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-black text-lg rounded-xl shadow-lg transition-colors"
+                >
+                  冒険をスタートする！ ➔
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLineShare}
+                  className="w-full py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
+                >
+                  <span>💬</span>
+                  <span>LINEで友達にシェアする</span>
+                </button>
               </div>
+            )}
 
-              <button
-                type="button"
-                onClick={() => startStage(chapterIdx, 0)}
-                className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
-              >
-                Stage 1 スタート！
-              </button>
-            </div>
-          )}
+            {/* 章のイントロ画面 */}
+            {gameState === 'chapter_intro' && (
+              <div className="space-y-4 py-3 text-center">
+                <div className="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-black rounded-full">
+                  {currentChapter.name}
+                </div>
+                <h2 className="text-xl font-black text-gray-800">{currentChapter.subtitle}</h2>
 
-          {/* プレイ中 ＆ リザルト共通盤面 */}
-          {gameState !== 'title' && gameState !== 'chapter_intro' && (
-            <>
-              {/* 進捗ゲージ */}
-              <div className="mb-3">
-                <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
-                  {isEndless ? (
-                    <span>のこりライフ：{'❤️'.repeat(endlessLives)}{'🖤'.repeat(3 - endlessLives)}</span>
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-left space-y-2">
+                  <p className="animate-story-line-1 text-xs font-bold text-gray-800 leading-relaxed">
+                    「{currentChapter.storyIntro}」
+                  </p>
+                  <div className="animate-story-line-2 pt-2 border-t border-amber-200 flex items-center justify-between text-xs">
+                    <span className="font-bold text-green-700">🎯 ターゲット：{currentChapter.veggieName}</span>
+                    <span className="font-bold text-red-600">⚠️ 注意：{currentChapter.obstacleName}</span>
+                  </div>
+                  <p className="animate-story-line-3 text-[11px] text-red-600 font-bold">
+                    ※ {currentChapter.obstacleName}：{currentChapter.obstacleDesc}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => startStage(chapterIdx, 0)}
+                  className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
+                >
+                  Stage 1 スタート！
+                </button>
+              </div>
+            )}
+
+            {/* プレイ中 ＆ リザルト共通盤面 */}
+            {gameState !== 'title' && gameState !== 'chapter_intro' && (
+              <>
+                <div className="mb-3">
+                  <div className="flex justify-between text-[11px] font-bold text-gray-600 mb-1">
+                    {isEndless ? (
+                      <span>のこりライフ：{'❤️'.repeat(endlessLives)}{'🖤'.repeat(3 - endlessLives)}</span>
+                    ) : (
+                      <span className={isGoalReached ? 'text-orange-600 font-black' : ''}>
+                        目標：{stageScore} / {currentStage.targetScore}点
+                      </span>
+                    )}
+                    <span>累計：{totalScore}点</span>
+                  </div>
+                  {!isEndless && (
+                    <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-200 ${
+                          isGoalReached ? 'bg-yellow-400' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 bg-green-50 rounded-xl px-3 py-2 mb-3 border border-green-200">
+                  <div className="text-center border-r border-green-200">
+                    <span className="block text-[10px] font-bold text-orange-700">コンボ</span>
+                    <span
+                      className={`text-lg font-black inline-block transition-transform ${
+                        combo >= 5 ? 'text-orange-600 scale-110' : 'text-gray-700'
+                      }`}
+                    >
+                      {combo}
+                      <span className="text-xs ml-0.5">連鎖</span>
+                    </span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[10px] font-bold text-red-800">
+                      {isEndless ? '最大コンボ' : 'のこり時間'}
+                    </span>
+                    <span
+                      className={`text-lg font-black ${
+                        !isEndless && timeLeft <= 5 && gameState === 'playing'
+                          ? 'text-red-600 animate-pulse'
+                          : 'text-gray-800'
+                      }`}
+                    >
+                      {isEndless ? `${maxCombo}連鎖` : `${timeLeft}秒`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="h-5 mb-2 flex items-center justify-center">
+                  {warnMessage ? (
+                    <span className="text-xs font-black text-red-600 bg-red-100 px-3 py-0.5 rounded-full animate-pulse">
+                      {warnMessage}
+                    </span>
                   ) : (
-                    <span className={isGoalReached ? 'text-orange-600 font-black' : ''}>
-                      目標：{stageScore} / {currentStage.targetScore}点
+                    <span className="text-[11px] text-gray-500 font-medium">
+                      {isEndless
+                        ? '※ お邪魔キャラ3回ミスで終了！限界に挑め！'
+                        : `※ ${currentChapter.obstacleName}注意！（${
+                            currentStage.instantClear ? '目標到達で即クリア' : '0秒まで目標キープ'
+                          }）`}
                     </span>
                   )}
-                  <span>累計：{totalScore}点</span>
                 </div>
-                {!isEndless && (
-                  <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full transition-all duration-200 ${
-                        isGoalReached ? 'bg-yellow-400' : 'bg-green-500'
-                      }`}
-                      style={{ width: `${progressPercent}%` }}
-                    />
+
+                {gameState !== 'all_clear' && (
+                  <div
+                    className={`grid grid-cols-3 gap-3 bg-amber-800 p-3.5 rounded-2xl shadow-inner mb-4 transition-opacity ${
+                      isStunned ? 'opacity-60 ring-4 ring-yellow-400' : ''
+                    }`}
+                  >
+                    {holes.map((hole) => (
+                      <div key={hole.id} className="relative h-24 w-full">
+                        <button
+                          type="button"
+                          onPointerDown={() => handleWhack(hole.id)}
+                          className="relative h-full w-full bg-amber-950 rounded-full overflow-hidden border-4 border-amber-900 focus:outline-none active:scale-90 transition-transform touch-manipulation"
+                        >
+                          <div
+                            className={`absolute inset-x-0 bottom-0 flex justify-center transition-transform duration-100 ${
+                              hole.isUp ? 'translate-y-1' : 'translate-y-24'
+                            } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
+                          >
+                            <CharacterIllustration charType={hole.charType} isHit={hole.isHit} />
+                          </div>
+                        </button>
+
+                        {hole.burstKey > 0 && (
+                          <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
+                            <BurstEffect burstVeggie={hole.burstVeggie} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
 
-              {/* コンボ・残り時間 */}
-              <div className="grid grid-cols-2 gap-2 bg-green-50 rounded-xl px-3 py-2 mb-3 border border-green-200">
-                <div className="text-center border-r border-green-200">
-                  <span className="block text-[10px] font-bold text-orange-700">コンボ</span>
-                  <span
-                    className={`text-lg font-black inline-block transition-transform ${
-                      combo >= 5 ? 'text-orange-600 scale-110' : 'text-gray-700'
-                    }`}
-                  >
-                    {combo}
-                    <span className="text-xs ml-0.5">連鎖</span>
-                  </span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-[10px] font-bold text-red-800">
-                    {isEndless ? '最大コンボ' : 'のこり時間'}
-                  </span>
-                  <span
-                    className={`text-lg font-black ${
-                      !isEndless && timeLeft <= 5 && gameState === 'playing'
-                        ? 'text-red-600 animate-pulse'
-                        : 'text-gray-800'
-                    }`}
-                  >
-                    {isEndless ? `${maxCombo}連鎖` : `${timeLeft}秒`}
-                  </span>
-                </div>
-              </div>
+                {gameState !== 'playing' && (
+                  <div className="space-y-2.5 text-center">
+                    {gameState === 'stage_clear' && (
+                      <div className="bg-green-100 border-2 border-green-400 rounded-xl p-3">
+                        <p className="text-base font-black text-green-800">🎉 {currentStage.title} クリア！</p>
+                        <p className="text-xs font-bold text-green-700 mt-1">畑が一段階育ったで！次のステージへ！</p>
+                      </div>
+                    )}
 
-              {/* 警告バー */}
-              <div className="h-5 mb-2 flex items-center justify-center">
-                {warnMessage ? (
-                  <span className="text-xs font-black text-red-600 bg-red-100 px-3 py-0.5 rounded-full animate-pulse">
-                    {warnMessage}
-                  </span>
-                ) : (
-                  <span className="text-[11px] text-gray-500 font-medium">
-                    {isEndless
-                      ? '※ お邪魔キャラ3回ミスで終了！限界に挑め！'
-                      : `※ ${currentChapter.obstacleName}注意！（${
-                          currentStage.instantClear ? '目標到達で即クリア' : '0秒まで目標キープ'
-                        }）`}
-                  </span>
-                )}
-              </div>
+                    {gameState === 'chapter_clear' && (
+                      <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400 rounded-xl p-3.5">
+                        <p className="text-base font-black text-amber-900">🎊 {currentChapter.name} 完全制覇！</p>
+                        <p className="animate-story-line-1 text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
+                        <span className="animate-story-line-2 inline-block mt-1.5 px-3 py-0.5 bg-white rounded-full text-xs font-black text-orange-600 shadow-sm">
+                          獲得：{currentChapter.seedReward}
+                        </span>
+                      </div>
+                    )}
 
-              {/* 3x3 穴グリッド（全章クリアのエピローグ表示時は畳んで演出に集中） */}
-              {gameState !== 'all_clear' && (
-                <div
-                  className={`grid grid-cols-3 gap-3 bg-amber-800 p-3.5 rounded-2xl shadow-inner mb-4 transition-opacity ${
-                    isStunned ? 'opacity-60 ring-4 ring-yellow-400' : ''
-                  }`}
-                >
-                  {holes.map((hole) => (
-                    <div key={hole.id} className="relative h-24 w-full">
+                    {gameState === 'all_clear' && (
+                      <EpilogueAnimationStage
+                        storyClear={currentChapter.storyClear}
+                        rankLabel={getRankLabel(totalScore)}
+                        totalScore={totalScore}
+                        maxCombo={maxCombo}
+                      />
+                    )}
+
+                    {gameState === 'game_over' && (
+                      <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                        <p className="text-base font-black text-red-700">
+                          {isEndless ? '無限収穫祭 終了！' : `時間切れ！あと ${currentStage.targetScore - stageScore}点！`}
+                        </p>
+                        <p className="text-xs font-bold text-gray-700 mt-1">
+                          累計スコア：{totalScore}点（最大{maxCombo}連鎖）
+                        </p>
+                      </div>
+                    )}
+
+                    {gameState === 'stage_clear' && (
                       <button
                         type="button"
-                        onPointerDown={() => handleWhack(hole.id)}
-                        className="relative h-full w-full bg-amber-950 rounded-full overflow-hidden border-4 border-amber-900 focus:outline-none active:scale-90 transition-transform touch-manipulation"
+                        onClick={() => startStage(chapterIdx, stageIdx + 1)}
+                        className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
                       >
-                        <div
-                          className={`absolute inset-x-0 bottom-0 flex justify-center transition-transform duration-100 ${
-                            hole.isUp ? 'translate-y-1' : 'translate-y-24'
-                          } ${hole.isHit ? 'scale-110' : 'scale-100'}`}
-                        >
-                          <CharacterIllustration charType={hole.charType} isHit={hole.isHit} />
-                        </div>
+                        次のステージへ進む！ ➔
                       </button>
+                    )}
 
-                      {hole.burstKey > 0 && (
-                        <div key={hole.burstKey} className="pointer-events-none absolute inset-0 z-30">
-                          <BurstEffect burstVeggie={hole.burstVeggie} />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+                    {gameState === 'chapter_clear' && (
+                      <button
+                        type="button"
+                        onClick={() => openChapterIntro(chapterIdx + 1, false)}
+                        className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
+                      >
+                        {CHAPTERS[chapterIdx + 1].name} へ進む！ ➔
+                      </button>
+                    )}
 
-              {/* リザルト・進行ボタン */}
-              {gameState !== 'playing' && (
-                <div className="space-y-2.5 text-center">
-                  {gameState === 'stage_clear' && (
-                    <div className="bg-green-100 border-2 border-green-400 rounded-xl p-3">
-                      <p className="text-base font-black text-green-800">🎉 {currentStage.title} クリア！</p>
-                      <p className="text-xs font-bold text-green-700 mt-1">畑が一段階育ったで！次のステージへ！</p>
-                    </div>
-                  )}
+                    {gameState === 'all_clear' && (
+                      <button
+                        type="button"
+                        onClick={startEndlessMode}
+                        className="w-full py-3.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-black text-base rounded-xl shadow-md"
+                      >
+                        ♾️ クリア特典：無限・黄金の収穫祭に挑む！
+                      </button>
+                    )}
 
-                  {gameState === 'chapter_clear' && (
-                    <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400 rounded-xl p-3.5">
-                      <p className="text-base font-black text-amber-900">🎊 {currentChapter.name} 完全制覇！</p>
-                      <p className="animate-story-line-1 text-xs font-bold text-gray-800 mt-1">{currentChapter.storyClear}</p>
-                      <span className="animate-story-line-2 inline-block mt-1.5 px-3 py-0.5 bg-white rounded-full text-xs font-black text-orange-600 shadow-sm">
-                        獲得：{currentChapter.seedReward}
-                      </span>
-                    </div>
-                  )}
-
-                  {gameState === 'all_clear' && (
-                    <EpilogueAnimationStage
-                      storyClear={currentChapter.storyClear}
-                      rankLabel={getRankLabel(totalScore)}
-                      totalScore={totalScore}
-                      maxCombo={maxCombo}
-                    />
-                  )}
-
-                  {gameState === 'game_over' && (
-                    <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                      <p className="text-base font-black text-red-700">
-                        {isEndless ? '無限収穫祭 終了！' : `時間切れ！あと ${currentStage.targetScore - stageScore}点！`}
-                      </p>
-                      <p className="text-xs font-bold text-gray-700 mt-1">
-                        累計スコア：{totalScore}点（最大{maxCombo}連鎖）
-                      </p>
-                    </div>
-                  )}
-
-                  {/* メイン遷移ボタン */}
-                  {gameState === 'stage_clear' && (
-                    <button
-                      type="button"
-                      onClick={() => startStage(chapterIdx, stageIdx + 1)}
-                      className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
-                    >
-                      次のステージへ進む！ ➔
-                    </button>
-                  )}
-
-                  {gameState === 'chapter_clear' && (
-                    <button
-                      type="button"
-                      onClick={() => openChapterIntro(chapterIdx + 1, false)}
-                      className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-lg rounded-xl shadow-md"
-                    >
-                      {CHAPTERS[chapterIdx + 1].name} へ進む！ ➔
-                    </button>
-                  )}
-
-                  {gameState === 'all_clear' && (
-                    <button
-                      type="button"
-                      onClick={startEndlessMode}
-                      className="w-full py-3.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-black text-base rounded-xl shadow-md"
-                    >
-                      ♾️ クリア特典：無限・黄金の収穫祭に挑む！
-                    </button>
-                  )}
-
-                  {gameState === 'game_over' && (
-                    <div className="space-y-2">
+                    {gameState === 'game_over' && (
                       <button
                         type="button"
                         onClick={() => (isEndless ? startEndlessMode() : startStage(chapterIdx, 0))}
@@ -1270,95 +1258,128 @@ export default function OkuraTatakiPage() {
                       >
                         {isEndless ? '無限収穫祭にもう一回挑む！' : `${currentChapter.name}のStage 1からリトライ！`}
                       </button>
-                    </div>
-                  )}
+                    )}
 
-                  <button
-                    type="button"
-                    onClick={handleLineShare}
-                    className="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
-                  >
-                    <span>💬</span>
-                    <span>LINEで友達にシェアする</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleLineShare}
+                      className="w-full py-3 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-sm rounded-xl shadow flex items-center justify-center gap-2"
+                    >
+                      <span>💬</span>
+                      <span>LINEで友達にシェアする</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setGameState('title')}
-                    className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-700"
-                  >
-                    タイトルへ戻る
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                    <button
+                      type="button"
+                      onClick={() => setGameState('title')}
+                      className="w-full py-2 text-xs font-bold text-gray-500 hover:text-gray-700"
+                    >
+                      タイトルへ戻る
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
-        {/* 下部の畑アイコンライン */}
-        <div className="flex justify-around items-center pt-2 text-lg">
-          {(isEndless ? ['⭐', '🍅', '🌶️', '🍉', '👑'] : currentStage.farmIcons).map((icon, i) => (
-            <span key={i}>{icon}</span>
-          ))}
+          {/* 下部の畑アイコンライン */}
+          <div className="flex justify-around items-center pt-2 text-lg">
+            {(isEndless ? ['⭐', '🍅', '🌶️', '🍉', '👑'] : currentStage.farmIcons).map((icon, i) => (
+              <span key={i}>{icon}</span>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* 🔧 テスト用クイックジャンプバー（公開前に削除可能） */}
-      <div className="max-w-md w-full mt-3 text-center">
-        <button
-          type="button"
-          onClick={() => setShowDevMenu((v) => !v)}
-          className="text-[11px] font-bold text-gray-500 underline"
+      {/* 💰 誤タップ防止余白付き：下部広告バナー枠 ＆ シリーズ導線 */}
+      <footer className="max-w-md w-full mt-6 pt-3 border-t border-amber-200/80 space-y-2.5 text-center">
+        {/* 広告バナー設置枠（ここに忍者AdMaxやAdSenseのタグを貼り付ける） */}
+        <div
+          id="ad-banner-slot"
+          className="w-full min-h-[60px] bg-white/80 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center p-2 text-[10px] text-gray-400"
         >
-          {showDevMenu ? '▲ テストメニューを閉じる' : '🔧 テスト用：各章ジャンプ＆即クリア'}
-        </button>
+          <span>SPONSORED LINK / 広告スペース</span>
+          <span className="text-[9px]">（ここに無料広告バナーコードを配置できます）</span>
+        </div>
 
-        {showDevMenu && (
-          <div className="mt-2 p-2.5 bg-gray-800 text-white rounded-xl text-xs space-y-2 shadow-lg">
-            <p className="text-[10px] text-gray-300">※ 動作確認用ショートカット</p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {CHAPTERS.map((chap, idx) => (
-                <button
-                  key={chap.id}
-                  type="button"
-                  onClick={() => openChapterIntro(idx, false)}
-                  className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-[11px] font-bold"
-                >
-                  第{chap.id}章
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={startEndlessMode}
-                className="px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-[11px] font-bold"
-              >
-                ♾️無限
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setChapterIdx(4);
-                  setStageIdx(4);
-                  setIsEndless(false);
-                  setGameState('all_clear');
-                }}
-                className="px-2 py-1 bg-amber-600 hover:bg-amber-500 rounded text-[11px] font-bold"
-              >
-                🎊エピローグ
-              </button>
-            </div>
-            {gameState === 'playing' && !isEndless && (
-              <button
-                type="button"
-                onClick={triggerClear}
-                className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded font-bold text-xs"
-              >
-                ⚡ 今のステージを強制クリア
-              </button>
+        {/* パロディミニゲーム・シリーズ枠 */}
+        <div className="bg-white/70 rounded-xl px-3 py-2 flex items-center justify-between text-[11px] border border-amber-200">
+          <span className="font-bold text-green-800">🎮 SUN ミニゲームシリーズ</span>
+          <span className="text-gray-500 font-medium">第2弾 鋭意制作中！</span>
+        </div>
+
+        {/* 遊び方ガイド ＆ プライバシーポリシー リンク（広告審査必須） */}
+        <div className="flex items-center justify-center gap-4 text-[11px] font-bold text-gray-600 pt-1">
+          <Link href="/guide" className="underline hover:text-green-700">
+            遊び方・図鑑ガイド
+          </Link>
+          <span>|</span>
+          <Link href="/privacy" className="underline hover:text-green-700">
+            プライバシーポリシー
+          </Link>
+        </div>
+
+        <p className="text-[10px] text-gray-400">© 2026 株式会社SUN All Rights Reserved.</p>
+
+        {/* 🔐 合言葉URL（?key=sun777okura）の時だけ出現する隠し管理者メニュー */}
+        {isAdminMode && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setShowDevMenu((v) => !v)}
+              className="text-[11px] font-bold text-amber-800 bg-amber-200 px-3 py-1 rounded-full"
+            >
+              {showDevMenu ? '▲ 管理者メニューを閉じる' : '🔐 管理者モード：テストメニューを開く'}
+            </button>
+
+            {showDevMenu && (
+              <div className="mt-2 p-2.5 bg-gray-800 text-white rounded-xl text-xs space-y-2 shadow-lg">
+                <p className="text-[10px] text-yellow-300">🔐 管理者専用テストショートカット</p>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {CHAPTERS.map((chap, idx) => (
+                    <button
+                      key={chap.id}
+                      type="button"
+                      onClick={() => openChapterIntro(idx, false)}
+                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-[11px] font-bold"
+                    >
+                      第{chap.id}章
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={startEndlessMode}
+                    className="px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-[11px] font-bold"
+                  >
+                    ♾️無限
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChapterIdx(4);
+                      setStageIdx(4);
+                      setIsEndless(false);
+                      setGameState('all_clear');
+                    }}
+                    className="px-2 py-1 bg-amber-600 hover:bg-amber-500 rounded text-[11px] font-bold"
+                  >
+                    🎊エピローグ
+                  </button>
+                </div>
+                {gameState === 'playing' && !isEndless && (
+                  <button
+                    type="button"
+                    onClick={triggerClear}
+                    className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded font-bold text-xs"
+                  >
+                    ⚡ 今のステージを強制クリア
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </footer>
     </main>
   );
 }
